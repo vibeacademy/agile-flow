@@ -60,3 +60,6 @@ jobs:
 
       - name: Validate agent policies
         run: ./tests/validate-agent-policies.sh
+
+      - name: Lint agent policies for prohibited instructions
+        run: ./scripts/lint-agent-policies.sh

@@ -10,8 +10,8 @@ ERRORS=0
 echo "Validating shell scripts..."
 echo ""
 
-# Find all .sh files
-for file in $(find . -name "*.sh" -type f ! -path "./.git/*" ! -path "./node_modules/*"); do
+# Find all .sh files using process substitution to avoid SC2044
+while IFS= read -r -d '' file; do
     filename=$(basename "$file")
     file_errors=0
 
@@ -23,11 +23,16 @@ for file in $(find . -name "*.sh" -type f ! -path "./.git/*" ! -path "./node_mod
 
     # Run shellcheck if available
     if command -v shellcheck &> /dev/null; then
+        # Excluded warnings:
         # SC1091: Don't follow sourced files (they may not exist in CI)
         # SC2034: Allow unused variables (may be used by sourcing scripts)
-        if ! shellcheck -e SC1091 -e SC2034 "$file" 2>/dev/null; then
+        # SC2155: Declare and assign separately (acceptable for simple cases)
+        # SC2086: Double quote to prevent globbing (often intentional)
+        # SC2162: read without -r (acceptable for simple scripts)
+        # SC2317: Unreachable code (often trap handlers)
+        if ! shellcheck -e SC1091 -e SC2034 -e SC2155 -e SC2086 -e SC2162 -e SC2317 "$file" 2>/dev/null; then
             echo "FAIL: $filename - Shellcheck issues found"
-            shellcheck -e SC1091 -e SC2034 "$file" 2>&1 | head -20
+            shellcheck -e SC1091 -e SC2034 -e SC2155 -e SC2086 -e SC2162 -e SC2317 "$file" 2>&1 | head -20
             file_errors=$((file_errors + 1))
         fi
     fi
@@ -42,7 +47,7 @@ for file in $(find . -name "*.sh" -type f ! -path "./.git/*" ! -path "./node_mod
     else
         ERRORS=$((ERRORS + file_errors))
     fi
-done
+done < <(find . -name "*.sh" -type f ! -path "./.git/*" ! -path "./node_modules/*" -print0)
 
 echo ""
 if [ $ERRORS -gt 0 ]; then

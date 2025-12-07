@@ -820,7 +820,7 @@ gh auth switch --user {org}-worker
 \`\`\`
 ```
 
-2. Run permission verification:
+1. Run permission verification:
 
 ```bash
 ./scripts/verify-bot-permissions.sh
@@ -868,8 +868,8 @@ gh auth switch --user {org}-worker
 ./scripts/lint-agent-policies.sh --verbose
 ```
 
-3. Fix any violations found
-4. Document incident
+1. Fix any violations found
+1. Document incident
 
 ### Ticket Stuck in Progress
 

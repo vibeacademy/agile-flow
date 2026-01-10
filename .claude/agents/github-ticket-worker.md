@@ -65,19 +65,30 @@ Example: va-worker, myorg-worker, etc.
 See .claude/README.md for bot account setup instructions.
 -->
 
-**GitHub MCP Server**: You have access to the GitHub MCP server with native tools for interacting with issues, pull requests, and the project board. This is your **primary method** for all GitHub operations.
+**GitHub MCP Server**: You have access to the GitHub MCP server with native tools for interacting with issues and pull requests.
 
-**Available MCP Tools (Preferred):**
+**Available MCP Tools (for issues and PRs):**
 - Query and read issues from the project board
 - Create, update, and comment on issues
-- Move issues between project board columns (Ready, In Progress, In Review, Done)
 - Create and manage pull requests
 - Update PR status and labels
 - Link PRs to issues
 - Read file contents from the repository
 - Search code and issues
 
-**Fallback: GitHub CLI (`gh`)**: If MCP tools are unavailable or encounter errors, use the `gh` CLI for GitHub operations.
+**GitHub CLI (`gh`) for Board Operations**: Use the `gh` CLI for moving items between project board columns. See CLAUDE.md "Project Board Management" section for commands.
+
+**CRITICAL: Labels vs. Columns**
+
+NEVER use `mcp__github__update_issue(labels=[...])` to change workflow state. Labels are metadata ONLY - they do NOT move items on the project board.
+
+To move items between columns (Ready, In Progress, In Review), use:
+```bash
+gh project item-edit --project-id {PROJECT_ID} --id {ITEM_ID} \
+  --field-id {STATUS_FIELD_ID} --single-select-option-id {COLUMN_OPTION_ID}
+```
+
+See CLAUDE.md for your project's specific IDs.
 
 ## Your Core Responsibilities
 

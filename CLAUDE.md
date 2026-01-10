@@ -144,6 +144,71 @@ Agents use GitHub MCP for project board operations:
 }
 ```
 
+## Project Board Management (CRITICAL)
+
+### Labels vs. Columns (IMPORTANT DISTINCTION)
+
+**These are COMPLETELY SEPARATE SYSTEMS:**
+
+| Concept | What It Is | Tool to Use |
+|---------|-----------|-------------|
+| Labels | Metadata tags on issues (priority, type) | `mcp__github__update_issue(labels=[...])` |
+| Columns | Workflow state on project board | `gh project item-edit` CLI command |
+
+**Adding a label does NOT move an item on the board.** This is a common source of confusion for AI agents because both systems may use similar terminology (e.g., a "Ready" label vs. the "Ready" column).
+
+### Moving Items Between Columns
+
+To move an issue between project board columns, use the `gh` CLI:
+
+```bash
+# 1. Get the item's project item ID
+ITEM_ID=$(gh project item-list {PROJECT_NUMBER} --owner {ORG} --format json \
+  | jq -r '.items[] | select(.content.number == {ISSUE_NUMBER}) | .id')
+
+# 2. Move to target column using the Status field
+gh project item-edit \
+  --project-id {PROJECT_ID} \
+  --id "$ITEM_ID" \
+  --field-id {STATUS_FIELD_ID} \
+  --single-select-option-id {COLUMN_OPTION_ID}
+```
+
+<!--
+TEMPLATE: Fill in your project's board IDs:
+
+| Concept | ID |
+|---------|-----|
+| Project ID | `PVT_xxx` |
+| Status Field ID | `PVTSSF_xxx` |
+
+| Column | Option ID |
+|--------|-----------|
+| Backlog | `abc123` |
+| Ready | `def456` |
+| In Progress | `ghi789` |
+| In Review | `jkl012` |
+| Done | `mno345` |
+
+Get these IDs by running:
+```bash
+gh project field-list {PROJECT_NUMBER} --owner {ORG} --format json
+```
+-->
+
+### Source of Truth
+
+The GitHub Projects board is the ONLY source of truth for ticket workflow status. Issue labels are useful for categorization (priority, type, area) but do NOT represent pipeline state.
+
+### Verification Requirement
+
+After moving an item, always verify the board state:
+
+```bash
+gh project item-list {PROJECT_NUMBER} --owner {ORG} --format json \
+  | jq '.items[] | select(.content.number == {ISSUE_NUMBER}) | .status'
+```
+
 ## Formatting Standards
 
 ### No Emojis in ASCII Tables

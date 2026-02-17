@@ -69,6 +69,25 @@ Configure branch protection on `main`:
 - Require status checks to pass (CI/CD)
 - Do not allow bypassing the above settings
 
+### Pre-push Hook (REQUIRED)
+
+A pre-push hook prevents broken code from reaching the remote. It auto-detects the language stack and runs the appropriate lint + test commands.
+
+```bash
+git config core.hooksPath scripts/hooks
+```
+
+**`--no-verify` is forbidden.** Never use `git push --no-verify` to bypass pre-push checks. Fix the failing checks instead.
+
+### GitHub Account Switching Hook
+
+The `.claude/hooks/ensure-github-account.sh` hook automatically switches GitHub accounts before PR operations:
+
+- **Worker account** (`AGILE_FLOW_WORKER_ACCOUNT`, default: `va-worker`) — used for PR creation
+- **Reviewer account** (`AGILE_FLOW_REVIEWER_ACCOUNT`, default: `va-reviewer`) — used for PR reviews
+
+This prevents the wrong account from being attributed to automated work. Override the account names via environment variables for your org.
+
 ## Agent Configuration
 
 ### Agent Roles and Boundaries

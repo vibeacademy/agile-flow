@@ -25,6 +25,14 @@ node_modules/
 npm-debug.log*
 yarn-error.log*
 
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
 # Build outputs (if applicable)
 dist/
 build/

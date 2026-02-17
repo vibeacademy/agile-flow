@@ -63,3 +63,21 @@ jobs:
 
       - name: Lint agent policies for prohibited instructions
         run: ./scripts/lint-agent-policies.sh
+
+      - name: Verify agent restrictions (protocol and docs)
+        run: ./scripts/verify-agent-restrictions.sh --test protocol && ./scripts/verify-agent-restrictions.sh --test docs
+
+  python:
+    name: python
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Lint with ruff
+        run: uv run --extra dev ruff check .
+
+      - name: Run tests
+        run: uv run --extra dev pytest --tb=short -q

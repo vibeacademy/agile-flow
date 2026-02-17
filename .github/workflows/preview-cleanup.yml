@@ -1,0 +1,24 @@
+name: Preview Cleanup
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  cleanup:
+    name: Cleanup Preview Resources
+    runs-on: ubuntu-latest
+    steps:
+      - name: Log cleanup
+        run: |
+          echo "========================================"
+          echo "  Preview Cleanup"
+          echo "========================================"
+          echo ""
+          echo "PR: #${{ github.event.number }}"
+          echo "Branch: ${{ github.head_ref }}"
+          echo "Merged: ${{ github.event.pull_request.merged }}"
+          echo ""
+          echo "Render preview environments are cleaned up"
+          echo "automatically when the PR is closed."
+          echo "========================================"

@@ -1,355 +1,333 @@
 # Getting Started with Agile Flow
 
-Step-by-step instructions for using this template to bootstrap a new project.
+A step-by-step guide to set up your project using the Agile Flow template.
+This guide is written for founders and non-engineers -- every step includes
+what you should see when it works.
+
+---
 
 ## Prerequisites
 
-Before you begin, ensure you have:
+You need four things installed before you start. If you already have them,
+skip to Step 1.
 
-- [ ] [Claude Code CLI](https://claude.ai/code) installed
-- [ ] Git installed
-- [ ] Node.js 18+ installed
-- [ ] A GitHub account with permission to create repositories
-- [ ] GitHub personal access token with `repo` and `project` scopes
+1. **Git** -- version control (tracks every change to your project).
+   Install from <https://git-scm.com/downloads>.
 
-## Step 1: Create Your Project Repository
+2. **Node.js 18 or newer** -- needed for some background tools.
+   Install from <https://nodejs.org>.
+
+3. **Claude Code CLI** -- the AI assistant that powers the agents.
+   Install from <https://claude.ai/code>.
+
+4. **A GitHub account** -- where your code and project board live.
+   Sign up at <https://github.com>.
+
+You will also need a **GitHub personal access token** so the tools can
+talk to GitHub on your behalf. To create one:
+
+1. Go to <https://github.com/settings/tokens>.
+2. Click **"Generate new token (classic)"**.
+3. Check the `repo` and `project` boxes.
+4. Click **Generate token** and copy it somewhere safe.
+
+---
+
+## Step 1: Create Your Project
+
+Open your terminal (Terminal on Mac, Command Prompt or PowerShell on
+Windows) and run these commands one at a time.
 
 ```bash
-# Create a new directory for your project
+# Create a folder for your project and move into it
 mkdir my-project
 cd my-project
 
-# Clone the Agile Flow template (replace with your fork URL)
+# Download the Agile Flow template into that folder
+# (replace the URL with your own fork if you have one)
 git clone https://github.com/your-org/agile-flow.git .
 
-# Remove the template's git history and start fresh
+# Remove the template's history so you start fresh
 rm -rf .git
 git init
+```
 
-# Create your GitHub repository, then connect it
+**You should see:** A message like `Initialized empty Git repository in
+/path/to/my-project/.git/` after the last command.
+
+Now connect your project to GitHub:
+
+```bash
+# Tell Git where your GitHub repository lives
+# (replace with your actual repository URL)
 git remote add origin git@github.com:your-org/your-project.git
 ```
 
-## Step 2: Configure GitHub Access
+---
 
-Set up your GitHub token for the MCP server:
+## Step 2: Set Up GitHub Access
+
+Give the tools permission to use GitHub by storing your personal access
+token. Run one of these in your terminal:
 
 ```bash
-# Option 1: Environment variable
-export GITHUB_TOKEN=your_github_token_here
+# Option 1: Set it for this terminal session only
+export GITHUB_TOKEN=paste_your_token_here
 
-# Option 2: Add to your shell profile (~/.zshrc or ~/.bashrc)
-echo 'export GITHUB_TOKEN=your_github_token_here' >> ~/.zshrc
+# Option 2: Save it permanently (recommended)
+# For Mac/Linux:
+echo 'export GITHUB_TOKEN=paste_your_token_here' >> ~/.zshrc
 source ~/.zshrc
 ```
 
+**You should see:** No output (that means it worked). To verify, run:
+
+```bash
+echo $GITHUB_TOKEN
+```
+
+You should see your token printed back.
+
+---
+
 ## Step 3: Run the Bootstrap Wizard
 
-The bootstrap wizard guides you through 4 phases of progressive refinement:
+The bootstrap wizard walks you through setting up your project in four
+phases. It asks you questions and generates configuration files based on
+your answers.
 
 ```bash
 ./bootstrap.sh
 ```
 
-This will show:
-```
-╔════════════════════════════════════════════════════════════╗
-║              Agile Flow Bootstrap Wizard                   ║
-╚════════════════════════════════════════════════════════════╝
+**You should see:** A welcome screen with four phases listed.
 
-Progress:
-  [ ] Phase 1: Product Definition
-  [ ] Phase 2: Technical Architecture
-  [ ] Phase 3: Agent Specialization
-  [ ] Phase 4: Workflow Activation
-```
+### Phase 1: Define Your Product
 
-### Phase 1: Product Definition
+The AI asks you about your product -- what problem it solves, who your
+users are, and what features you need.
 
-**What happens**: The Product Manager agent interviews you about your product.
-
-**You provide**:
-- What problem you're solving
-- Who your users are
-- What features you need
-- How you'll measure success
-
-**Output created**:
-- `docs/PRODUCT-REQUIREMENTS.md` - Your PRD
-- `docs/PRODUCT-ROADMAP.md` - Your roadmap
-
-**How to run**:
 ```bash
-# When prompted by bootstrap.sh, open Claude Code
+# Open the AI assistant
 claude
 
-# Run the bootstrap command
+# Then type this command inside Claude Code
 /bootstrap-product
 ```
 
-Answer the Product Manager's questions. When done, the agent creates your PRD and roadmap.
+Answer the questions. When it finishes, it creates two files:
 
-### Phase 2: Technical Architecture
+- `docs/PRODUCT-REQUIREMENTS.md` -- what you are building and why
+- `docs/PRODUCT-ROADMAP.md` -- the plan, broken into phases
 
-**What happens**: The System Architect reads your PRD and helps define technical decisions.
+**You should see:** Both files appear in your `docs/` folder. Open them
+to verify they match what you described.
 
-**You provide**:
-- Technology preferences/constraints
-- Scale requirements
-- Team expertise
-- Infrastructure preferences
+### Phase 2: Define Your Technical Architecture
 
-**Output created**:
-- `docs/TECHNICAL-ARCHITECTURE.md` - Your architecture document
+The AI reads what you described in Phase 1 and helps pick the right
+technology.
 
-**How to run**:
 ```bash
-# In Claude Code
+# Inside Claude Code
 /bootstrap-architecture
 ```
 
-Review the architect's recommendations and iterate until satisfied.
+**You should see:** A new file at `docs/TECHNICAL-ARCHITECTURE.md`.
 
-### Phase 3: Agent Specialization
+### Phase 3: Configure the AI Agents
 
-**What happens**: All agents are updated with your project-specific context.
+The AI updates its own configuration files so the agents understand your
+specific project.
 
-**What gets updated**:
-- Agent configurations with your tech stack
-- CLAUDE.md with your project details
-- Quality standards specific to your stack
-
-**How to run**:
 ```bash
-# In Claude Code
+# Inside Claude Code
 /bootstrap-agents
 ```
 
-Review the changes to ensure agents understand your project.
+**You should see:** Updated files inside the `.claude/` folder. The
+agents now know about your tech stack and project details.
 
-### Phase 4: Workflow Activation
+### Phase 4: Set Up Your Project Board
 
-**What happens**: GitHub project board and initial backlog are set up.
+The AI creates your GitHub project board and populates it with your first
+set of tasks (called "tickets").
 
-**You provide**:
-- GitHub organization name
-- Repository name
-- Project board name
-
-**Output created**:
-- GitHub project board with columns
-- Initial backlog issues from PRD features
-- Branch protection configuration
-
-**How to run**:
 ```bash
-# In Claude Code
+# Inside Claude Code
 /bootstrap-workflow
 ```
 
-## Step 4: Set Up GitHub Project Board
+You will be asked for your GitHub organization name, repository name, and
+project board name.
 
-If not done automatically, create a GitHub Project board with these columns:
+**You should see:** A project board on GitHub with columns like Backlog,
+Ready, In Progress, In Review, and Done.
 
-| Column | Purpose |
-|--------|---------|
-| Icebox | Ideas not yet prioritized |
-| Backlog | Prioritized but not ready |
-| Ready | Well-defined, ready to work (2-5 items) |
-| In Progress | Currently being worked on |
-| In Review | PR created, awaiting review |
-| Done | Merged and complete |
+---
 
-## Step 5: Configure Branch Protection
+## Step 4: Protect Your Main Branch
 
-In your GitHub repository settings:
+This step makes sure nobody (including the AI) can push changes directly
+to your main codebase without review. You do this once in GitHub settings.
 
-1. Go to **Settings** → **Branches**
-2. Add rule for `main` branch
-3. Enable:
-   - [x] Require pull request reviews before merging
-   - [x] Require status checks to pass (if you have CI)
-   - [x] Do not allow bypassing the above settings
+1. Go to your repository on GitHub.
+2. Click **Settings** (top menu bar).
+3. Click **Branches** (left sidebar).
+4. Click **Add rule**.
+5. Type `main` in the branch name pattern.
+6. Check these boxes:
+   - "Require a pull request before merging"
+   - "Require status checks to pass before merging" (if you have CI)
+   - "Do not allow bypassing the above settings"
+7. Click **Create**.
 
-## Step 6: Make Initial Commit
+**You should see:** A protection rule listed for the `main` branch.
+
+---
+
+## Step 5: Make Your First Commit
+
+Save everything and push it to GitHub.
 
 ```bash
+# Stage all files (prepare them to be saved)
 git add -A
-git commit -m "Initialize project with Agile Flow template
 
-- Created PRD and roadmap
-- Defined technical architecture
-- Configured specialized agents
-- Set up project workflow"
+# Save a snapshot with a description
+git commit -m "Initialize project with Agile Flow template"
 
+# Upload to GitHub
 git push -u origin main
 ```
 
-## Step 7: Start Development
+**You should see:** Output ending with something like
+`Branch 'main' set up to track remote branch 'main' from 'origin'.`
 
-Your project is now ready! Use these commands:
+---
 
-### Daily Workflow
+## Step 6: Work on Your First Ticket
+
+Now that setup is complete, here is how day-to-day work looks.
 
 ```bash
-# Start Claude Code
+# Open the AI assistant
 claude
 
-# Morning: Check board status
+# Check what is on the board
 /sprint-status
 
-# Pick up next ticket
+# Tell the AI to pick up the next task and start coding
 /work-ticket
+```
 
-# Review pending PRs
+The AI will:
+
+1. Pick the top task from the Ready column.
+2. Create a branch (a separate workspace so `main` stays safe).
+3. Write the code and tests.
+4. Open a **pull request** (a proposal to add the changes).
+
+**You should see:** A new pull request on your GitHub repository.
+
+---
+
+## Step 7: Review and Merge
+
+After the AI finishes a task, review its work before adding it to the
+main project.
+
+```bash
+# Ask the AI reviewer to check the code
 /review-pr
 ```
 
-### Weekly Planning
+Then go to the pull request on GitHub:
 
-```bash
-# Check milestone progress
-/check-milestone "MVP"
+1. Read the AI review comments.
+2. Look over the changes yourself.
+3. If everything looks good, click **"Squash and merge"**.
+4. Move the ticket to the **Done** column on your project board.
 
-# Groom the backlog
-/groom-backlog
-```
+**You should see:** The pull request status changes to "Merged" (purple
+icon on GitHub).
 
-### Feature Decisions
-
-```bash
-# Evaluate a new feature request
-/evaluate-feature "Add dark mode support"
-
-# Get architecture guidance
-/architect-review "How should we implement caching?"
-```
-
-### Release Process
-
-```bash
-# Make go/no-go decision
-/release-decision v1.0
-```
+---
 
 ## Command Reference
 
-| Command | When to Use |
+| Command | What it does |
 |---------|-------------|
-| `/sprint-status` | Daily standup, quick health check |
-| `/work-ticket` | Ready to implement next feature |
-| `/review-pr` | PRs waiting for review |
-| `/groom-backlog` | Ready column empty, weekly planning |
-| `/check-milestone` | Track progress toward deadline |
-| `/evaluate-feature` | New feature request received |
-| `/release-decision` | Preparing to ship |
-| `/test-feature` | Need test plan or validation |
-| `/architect-review` | Design decision needed |
+| `/sprint-status` | Shows the current state of your project board |
+| `/work-ticket` | Picks up the next task and writes the code |
+| `/review-pr` | Reviews a pull request and recommends approve or reject |
+| `/groom-backlog` | Organizes and prioritizes your task list |
+| `/check-milestone` | Shows progress toward a goal (e.g., MVP) |
+| `/evaluate-feature` | Evaluates whether a feature idea is worth building |
+| `/release-decision` | Helps decide if you are ready to ship |
+| `/test-feature` | Creates a test plan for a feature |
+| `/architect-review` | Gets technical design advice |
 
-## Agent Roles
+For a full explanation of how agents work together, see
+[AGENT-WORKFLOW-SUMMARY.md](AGENT-WORKFLOW-SUMMARY.md).
 
-| Agent | Responsibility | Invoke When |
-|-------|---------------|-------------|
-| Product Manager | Strategy, vision, go/no-go | Feature evaluation, release decisions |
-| Product Owner | Backlog, tickets, priorities | Grooming, sprint planning |
-| Ticket Worker | Implementation, PRs | `/work-ticket` |
-| PR Reviewer | Code review | `/review-pr` |
-| Quality Engineer | Test plans, validation | `/test-feature` |
-| System Architect | Design guidance | `/architect-review` |
+For details about each AI agent's role and rules, see the agent files in
+`.claude/agents/`.
 
-## Workflow Diagram
-
-```
-┌─────────────────┐
-│ Feature Request │
-└────────┬────────┘
-         │
-         v
-┌─────────────────┐     ┌─────────┐
-│ Product Manager │────>│ DECLINE │
-│ /evaluate-feature│     └─────────┘
-└────────┬────────┘
-         │ BUILD
-         v
-┌─────────────────┐
-│  Product Owner  │
-│ /groom-backlog  │
-└────────┬────────┘
-         │
-         v
-┌─────────────────┐
-│  Ready Column   │
-│   (2-5 items)   │
-└────────┬────────┘
-         │
-         v
-┌─────────────────┐
-│  Ticket Worker  │
-│  /work-ticket   │
-└────────┬────────┘
-         │ Creates PR
-         v
-┌─────────────────┐
-│   PR Reviewer   │
-│   /review-pr    │
-└────────┬────────┘
-         │ GO recommendation
-         v
-┌─────────────────┐
-│     Human       │
-│  Final Review   │
-│     & Merge     │
-└────────┬────────┘
-         │
-         v
-┌─────────────────┐
-│      Done       │
-└─────────────────┘
-```
+---
 
 ## Troubleshooting
 
 ### "Ready column is empty"
+
+The AI has nothing to work on. Fill it by running:
+
 ```bash
 /groom-backlog
 ```
 
+This looks at your backlog and moves well-defined tasks into the Ready
+column.
+
 ### "Bootstrap phase failed"
-- Check that previous phases completed
-- Look for missing files in `docs/`
-- Re-run the failed phase
+
+- Make sure you completed earlier phases first (they build on each other).
+- Check the `docs/` folder -- if files from earlier phases are missing,
+  re-run those phases.
+- Re-run the failed phase command.
 
 ### "GitHub token not working"
-- Verify token has `repo` and `project` scopes
-- Check token isn't expired
-- Ensure `GITHUB_TOKEN` env var is set
+
+- Make sure your token has `repo` and `project` permissions (see Step 2).
+- Tokens expire. If yours is old, create a new one.
+- Verify the token is set by running `echo $GITHUB_TOKEN` in your
+  terminal.
 
 ### "Agent gives generic advice"
-- Ensure Phase 3 completed
-- Check agent files for project context
-- Re-run `/bootstrap-agents`
 
-### "PR reviewer can't find PRs"
-- Ensure tickets are in "In Review" column
-- Verify PRs are linked to issues
-- Check project board URL in CLAUDE.md
+This usually means Phase 3 (agent configuration) did not complete. Run:
 
-## Next Steps
+```bash
+/bootstrap-agents
+```
 
-After setup:
+### "Pull request reviewer cannot find PRs"
 
-1. **Populate your backlog** - `/groom-backlog`
-2. **Start your first ticket** - `/work-ticket`
-3. **Set up CI/CD** - Add GitHub Actions for tests
-4. **Invite team members** - Share repo access
-5. **Schedule standups** - Daily `/sprint-status`
-
-## Getting Help
-
-- Check `CLAUDE.md` for project configuration
-- Review agent files in `.claude/agents/` for behavior
-- See command files in `.claude/commands/` for usage
+- Make sure the ticket is in the "In Review" column on your project board.
+- Check that the pull request is linked to a GitHub issue.
+- Verify the project board URL is set in `CLAUDE.md`.
 
 ---
 
-Happy building!
+## Next Steps
+
+1. **Fill your backlog** -- run `/groom-backlog` to prioritize tasks.
+2. **Work your first ticket** -- run `/work-ticket` to start building.
+3. **Set up CI/CD** -- see [CI-CD-GUIDE.md](CI-CD-GUIDE.md) for
+   automated checks.
+4. **Invite team members** -- share repository access on GitHub.
+5. **Check the FAQ** -- see [FAQ.md](FAQ.md) for common questions.
+
+---
+
+For questions not covered here, see the [FAQ](FAQ.md).

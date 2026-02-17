@@ -52,7 +52,7 @@ gh auth login   # log in with the worker bot account
 gh auth login   # log in with the reviewer bot account
 ```
 
-4. The system switches between them automatically after that.
+The system switches between them automatically after that.
 
 ---
 

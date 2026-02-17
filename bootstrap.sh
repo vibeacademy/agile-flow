@@ -169,9 +169,11 @@ persist_env_var() {
         fi
         print_info "Updated ${var_name} in ${profile}"
     else
-        echo "" >> "$profile"
-        echo "# Added by Agile Flow bootstrap" >> "$profile"
-        echo "export ${var_name}=\"${var_value}\"" >> "$profile"
+        {
+            echo ""
+            echo "# Added by Agile Flow bootstrap"
+            echo "export ${var_name}=\"${var_value}\""
+        } >> "$profile"
         print_info "Added ${var_name} to ${profile}"
     fi
 }

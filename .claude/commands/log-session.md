@@ -1,50 +1,75 @@
 ---
-description: Log a development session summary for continuity across sessions
+description: Log a session journal capturing tickets delivered, challenges, mitigations, and insights
 ---
 
-Record what happened this session so the next session has context.
+Write a session journal for today's development session and save it to `reports/session-journals/YYYY-MM-DD.md`.
+
+If a journal already exists for today's date, append a session number suffix (e.g., `2026-02-15-2.md`).
 
 ## What to Capture
 
-1. **Tickets Delivered** — Issue numbers, PR numbers, what was implemented
-2. **Tickets In Progress** — What's partially done, where you left off
-3. **Challenges** — Blockers encountered, workarounds used
-4. **Mitigations** — How challenges were resolved or worked around
-5. **Insights** — Patterns discovered, lessons learned, things to remember
-6. **Next Steps** — What should happen next session
+### 1. Session Summary (2-3 sentences)
+High-level narrative of what the session accomplished and its strategic significance.
 
-## Output Format
+### 2. Tickets Delivered
+For each ticket completed (merged to main) during this session:
 
-Post the session log as a comment on the relevant epic or milestone issue.
-If no epic is active, create a standalone session log in the PR or issue
-being worked on.
+| Field | Description |
+|-------|-------------|
+| Ticket # and title | Issue number and short description |
+| PR # | Pull request number |
+| What changed | 1-2 sentence summary of the implementation |
+| Files touched | Key files modified (not exhaustive) |
+| Tests added | Count and nature of new tests |
 
-```markdown
-## Session Log — [Date]
+### 3. Tickets In Review
+Same format as above, but for PRs that are created and reviewed but not yet merged.
 
-### Delivered
-- #123: Added health check endpoint (PR #456 merged)
-- #124: Fixed Sentry integration (PR #457 in review)
+### 4. Challenges and Mitigations
+Document every significant obstacle encountered and how it was resolved:
 
-### In Progress
-- #125: Preview deploy workflow — CI passing, waiting on RENDER_API_KEY secret
+| Field | Description |
+|-------|-------------|
+| Challenge | What went wrong or blocked progress |
+| Root cause | Why it happened |
+| Mitigation | How it was resolved |
+| Prevention | What would prevent this in the future (if applicable) |
 
-### Challenges
-- Render API rate limiting during preview service polling
+Examples: merge conflicts, CI failures, migration errors, test failures, architectural decisions that needed revision.
 
-### Mitigations
-- Added exponential backoff to polling loop
+### 5. Insights and Learnings
+Capture knowledge that will help in future sessions:
+- **Technical insights** — patterns discovered, gotchas identified, architecture decisions
+- **Process insights** — workflow improvements, efficiency gains, bottlenecks identified
+- **Domain insights** — business logic clarifications, product understanding
 
-### Insights
-- Render preview services use naming pattern `{service}-pr-{number}`
+These should be concrete and actionable, not generic observations.
 
-### Next Steps
-- Configure RENDER_API_KEY secret in repo settings
-- Pick up #126 from Ready column
-```
+### 6. Tickets Created
+New tickets created during the session with brief context on why they were created.
 
-## Usage
+### 7. Metrics
+Quick quantitative summary:
+- PRs created / merged / reviewed
+- Tickets completed / created
+- Tests added
+- Board state changes
 
-```
-/log-session
-```
+### 8. Next Up
+Prioritized list of what should be tackled next, with context on dependencies and blockers.
+
+## Format
+
+Use the template structure from existing journals in `reports/session-journals/`. Keep the tone factual and concise — this is a working document for project continuity, not a blog post.
+
+## After Writing
+
+1. Read the journal back to verify completeness
+2. Cross-reference against the git log and board state to catch anything missed
+3. Present a brief summary to the user
+
+## Related Commands
+
+- `/sprint-status` — Current board health overview
+- `/groom-backlog` — Prioritize and populate Ready column
+- `/work-ticket` — Pick up next ticket

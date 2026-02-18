@@ -406,10 +406,11 @@ human) do this -- agents are not allowed to mark tickets as Done.
 
 ---
 
-## Step 8: Trigger a Bug -- `/error` Endpoint to Sentry to Board
+## Step 8: Trigger a Bug -- Error to GitHub Issue to Agent Fix
 
 The starter app has a deliberate `/error` endpoint that raises a
-`RuntimeError`. This simulates a production bug.
+`RuntimeError`. When no external Sentry account is configured, the app
+captures errors itself and creates GitHub issues automatically.
 
 ### 8a. Hit the error endpoint
 
@@ -417,43 +418,69 @@ The starter app has a deliberate `/error` endpoint that raises a
 curl https://agile-flow-starter.onrender.com/error
 ```
 
-You should see: An HTTP 500 response (Render will show its error page or
-a JSON error depending on configuration).
+You should see: An HTTP 500 response.
 
-### 8b. Check Sentry
+### 8b. Check for the auto-created issue
 
-Open your Sentry project dashboard at `https://sentry.io`.
+Wait 10-30 seconds, then check your repository for new issues:
 
-You should see: A new issue within 30 seconds:
-
-```
-RuntimeError: Deliberate error for Day 1 workshop exercise -- this should
-appear in Sentry and auto-create a GitHub issue.
+```bash
+gh issue list --label bug:auto
 ```
 
-The issue will show:
-
-- The stack trace pointing to `app/main.py`, line 28
-- The environment (production)
-- The URL that was hit (`/error`)
-
-### 8c. Bug ticket on your board
-
-If the Sentry-GitHub integration is configured (see
-[SENTRY-SETUP.md](./SENTRY-SETUP.md), Section 4), Sentry automatically
-creates a GitHub issue in your repo.
-
-You should see: A new issue on your GitHub project board with the Sentry
-error details, ready for triage.
-
-If the integration is not yet set up, create the bug ticket manually:
+You should see:
 
 ```
-/create-ticket Fix deliberate /error endpoint -- RuntimeError captured in Sentry
+#N  bug: RuntimeError: Deliberate error for Day 1 workshop exercise...  bug:auto, P1
 ```
 
-Either way, the bug is now a ticket on your board, ready to be prioritized
-and worked just like any other ticket.
+Open the issue on GitHub. The body contains the error type, message, and
+stack trace — everything the agent needs to fix it.
+
+### 8c. Auto-triage comment
+
+The auto-triage workflow fires automatically when the `bug:auto` label is
+applied. Check the issue for a comment that says:
+
+```
+## Auto-Triage
+
+This bug was automatically detected from a production error.
+
+To fix it, run:
+
+/work-ticket #N
+```
+
+### 8d. Agent fixes the bug
+
+Run the command from the triage comment:
+
+```
+/work-ticket #N
+```
+
+The agent will read the error details, create a branch, write a fix, and
+open a pull request.
+
+You should see: A new PR linked to the bug issue.
+
+### 8e. Review and merge
+
+Follow the same review process from Step 7 — run `/review-pr`, check the
+diff, and merge.
+
+You should see: The bug fix deployed to production. The `/error` endpoint
+behavior is unchanged (it is deliberately broken for demo purposes), but
+you have now experienced the full loop:
+
+```
+Error in production → Auto-detected → GitHub issue → Agent fix → PR → Human merge
+```
+
+No Sentry account required. If you want a full error monitoring dashboard
+with history and alerts, see the upgrade options in
+[SENTRY-SETUP.md](./SENTRY-SETUP.md).
 
 ---
 
@@ -473,8 +500,8 @@ Verify you have completed each item:
 - [ ] `/review-pr` posted a GO/NO-GO review comment
 - [ ] You (human) approved and merged the PR
 - [ ] Production deploy succeeded -- `/health` returns `{"status": "ok"}`
-- [ ] `/error` endpoint triggered a Sentry alert
-- [ ] Bug ticket exists on the board (auto-created or manual)
+- [ ] `/error` endpoint created a `bug:auto` GitHub issue automatically
+- [ ] Auto-triage workflow posted a `/work-ticket` comment on the issue
 
 ---
 

@@ -20,8 +20,8 @@ AI-assisted development.
 
 - [ ] Render account with service created
 - [ ] `RENDER_API_KEY` and `RENDER_SERVICE_ID` added to repo secrets
-- [ ] Sentry project created with DSN
-- [ ] `SENTRY_DSN` added to Render environment variables
+- [ ] (Optional) Sentry project created with DSN — not required for zero-config error flow
+- [ ] (Optional) `SENTRY_DSN` added to Render environment variables
 
 ### Instructor Setup
 
@@ -85,6 +85,8 @@ export AGILE_FLOW_REVIEWER_ACCOUNT="{org}-reviewer"
 
 ## Sentry Setup
 
+Note: Sentry SaaS is optional. The app ships with zero-config error telemetry that creates GitHub issues automatically. The steps below are only needed if you want an external error monitoring dashboard.
+
 1. Create a Sentry organization (free tier is sufficient)
 2. Create a project: **Python > FastAPI**
 3. Copy the DSN from **Settings > Client Keys**
@@ -118,7 +120,7 @@ export AGILE_FLOW_REVIEWER_ACCOUNT="{org}-reviewer"
 | 2:00-2:30 | Break | - |
 | 2:30-3:00 | Workflow activation | `/bootstrap-workflow` |
 | 3:00-3:30 | First ticket: deploy and verify | `/work-ticket` |
-| 3:30-4:00 | Trigger deliberate error, verify Sentry | Visit `/error` |
+| 3:30-4:00 | Trigger deliberate error, verify auto-created issue | `curl /error`, `gh issue list` |
 
 **Day 1 Success Criteria:**
 - App deployed to Render

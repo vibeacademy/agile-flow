@@ -89,7 +89,7 @@ def _format_stacktrace(stacktrace: dict[str, Any] | None) -> str:
         filename = frame.get("filename", "?")
         lineno = frame.get("lineno", "?")
         function = frame.get("function", "?")
-        lines.append(f"  File \"{filename}\", line {lineno}, in {function}")
+        lines.append(f'  File "{filename}", line {lineno}, in {function}')
         if "context_line" in frame and frame["context_line"]:
             lines.append(f"    {frame['context_line'].strip()}")
     return "\n".join(lines) if lines else "No stacktrace available"
@@ -109,26 +109,28 @@ def _create_github_issue(error_info: dict[str, Any]) -> bool:
     title = f"bug: {error_info['type']}: {error_info['value'][:80]}"
     body = f"""## Auto-Detected Error
 
-**Type:** `{error_info['type']}`
-**Message:** {error_info['value']}
-**Environment:** {error_info['environment']}
-**Timestamp:** {error_info['timestamp']}
+**Type:** `{error_info["type"]}`
+**Message:** {error_info["value"]}
+**Environment:** {error_info["environment"]}
+**Timestamp:** {error_info["timestamp"]}
 
 ### Stack Trace
 
 ```
-{error_info['stacktrace']}
+{error_info["stacktrace"]}
 ```
 
 ---
 *Auto-created by the error receiver. Run `/work-ticket` to fix this bug.*
 """
 
-    payload = json.dumps({
-        "title": title,
-        "body": body,
-        "labels": ["bug:auto"],
-    }).encode()
+    payload = json.dumps(
+        {
+            "title": title,
+            "body": body,
+            "labels": ["bug:auto"],
+        }
+    ).encode()
 
     req = urllib.request.Request(
         f"https://api.github.com/repos/{repo}/issues",

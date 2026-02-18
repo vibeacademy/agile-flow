@@ -14,28 +14,30 @@ def _make_sentry_envelope(exc_type: str = "RuntimeError", exc_value: str = "test
     """Build a minimal Sentry envelope with exception data."""
     header = json.dumps({"event_id": "abc123", "dsn": "https://key@localhost/0"})
     item_header = json.dumps({"type": "event"})
-    payload = json.dumps({
-        "exception": {
-            "values": [
-                {
-                    "type": exc_type,
-                    "value": exc_value,
-                    "stacktrace": {
-                        "frames": [
-                            {
-                                "filename": "app/main.py",
-                                "lineno": 28,
-                                "function": "error",
-                                "context_line": "raise RuntimeError('test')",
-                            }
-                        ]
-                    },
-                }
-            ]
-        },
-        "timestamp": "2026-02-18T12:00:00Z",
-        "environment": "production",
-    })
+    payload = json.dumps(
+        {
+            "exception": {
+                "values": [
+                    {
+                        "type": exc_type,
+                        "value": exc_value,
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "filename": "app/main.py",
+                                    "lineno": 28,
+                                    "function": "error",
+                                    "context_line": "raise RuntimeError('test')",
+                                }
+                            ]
+                        },
+                    }
+                ]
+            },
+            "timestamp": "2026-02-18T12:00:00Z",
+            "environment": "production",
+        }
+    )
     return f"{header}\n{item_header}\n{payload}".encode()
 
 

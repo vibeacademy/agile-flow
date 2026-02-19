@@ -5,10 +5,13 @@ on:
     types: [opened, synchronize, reopened]
 
 jobs:
+  ci:
+    name: CI Checks
+    uses: ./.github/workflows/ci.yml
+
   wait-for-supabase:
     name: Wait for Supabase Branch
     runs-on: ubuntu-latest
-    if: ${{ secrets.SUPABASE_ACCESS_TOKEN != '' }}
     outputs:
       branch_ready: ${{ steps.check.outputs.conclusion || 'skipped' }}
     steps:
@@ -20,7 +23,6 @@ jobs:
           checkName: Supabase Preview
           ref: ${{ github.event.pull_request.head.sha }}
           token: ${{ secrets.GITHUB_TOKEN }}
-          # Wait up to 10 minutes for Supabase branch
           timeoutSeconds: 600
           intervalSeconds: 30
 
@@ -28,49 +30,30 @@ jobs:
         if: steps.check.outcome == 'failure' || steps.check.outputs.conclusion != 'success'
         run: |
           echo "Supabase branch status: ${{ steps.check.outputs.conclusion || 'unknown' }}"
-          if [ "${{ steps.check.outcome }}" = "failure" ]; then
-            echo "Note: Could not query check status. This is often a permissions issue."
-            echo "The Supabase CLI will attempt to get branch credentials directly."
-          fi
           echo "Continuing with Supabase CLI credential detection..."
 
   deploy-preview:
     name: Deploy to Render Preview
-    needs: [wait-for-supabase]
-    # Run even if wait-for-supabase was skipped (no SUPABASE_ACCESS_TOKEN)
-    if: always()
+    needs: [ci, wait-for-supabase]
+    # Run even if wait-for-supabase was skipped, but require CI to pass
+    if: always() && needs.ci.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       pull-requests: write
     steps:
-      - name: Check for Render API key
-        id: check_render
-        run: |
-          if [ -z "${{ secrets.RENDER_API_KEY }}" ]; then
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-            echo "RENDER_API_KEY not configured — skipping preview deploy."
-          else
-            echo "skip=false" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Checkout code
-        if: steps.check_render.outputs.skip != 'true'
         uses: actions/checkout@v4
 
-      # ── Supabase Branch Credential Injection ──────────────────────────
-      # All steps gated on SUPABASE_ACCESS_TOKEN — skips gracefully if
-      # Supabase is not configured.
+      # ── Supabase Branch Credential Detection ──────────────────────────
 
       - name: Setup Supabase CLI
-        if: ${{ steps.check_render.outputs.skip != 'true' && secrets.SUPABASE_ACCESS_TOKEN != '' }}
         uses: supabase/setup-cli@v1
         with:
           version: latest
 
       - name: Fetch branch database credentials
         id: supabase_branch
-        if: ${{ steps.check_render.outputs.skip != 'true' && secrets.SUPABASE_ACCESS_TOKEN != '' }}
         uses: 0xbigboss/supabase-branch-gh-action@v1
         continue-on-error: true
         with:
@@ -80,36 +63,31 @@ jobs:
 
       - name: Set Supabase environment variables
         id: supabase_env
-        if: ${{ steps.check_render.outputs.skip != 'true' && secrets.SUPABASE_ACCESS_TOKEN != '' }}
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
-          # Check if branch credentials were retrieved
           if [ -n "${{ steps.supabase_branch.outputs.api_url }}" ]; then
             echo "Using Supabase branch database"
-            # The api_url from the action includes /rest/v1 — strip it
             BRANCH_URL="${{ steps.supabase_branch.outputs.api_url }}"
             BRANCH_URL="${BRANCH_URL%/rest/v1}"
 
-            # Extract branch ref from URL (e.g., https://abcdef123.supabase.co -> abcdef123)
             BRANCH_REF=$(echo "$BRANCH_URL" | sed -E 's|https://([^.]+)\.supabase\.co.*|\1|')
 
             echo "SUPABASE_URL=$BRANCH_URL" >> $GITHUB_ENV
             echo "branch_exists=true" >> $GITHUB_OUTPUT
             echo "branch_project_ref=$BRANCH_REF" >> $GITHUB_OUTPUT
-            echo "Branch URL (base): $BRANCH_URL"
+            echo "Branch URL: $BRANCH_URL"
             echo "Branch ref: $BRANCH_REF"
 
             if [ -z "$BRANCH_REF" ]; then
               echo "WARNING: Could not extract branch ref from URL"
-              echo "Falling back to anon_key from branch action"
-              echo "SUPABASE_KEY=${{ steps.supabase_branch.outputs.anon_key }}" >> $GITHUB_ENV
+              echo "SUPABASE_ANON_KEY=${{ steps.supabase_branch.outputs.anon_key }}" >> $GITHUB_ENV
+              echo "SUPABASE_SERVICE_KEY=${{ steps.supabase_branch.outputs.anon_key }}" >> $GITHUB_ENV
               echo "service_role_key_source=anon_key_fallback" >> $GITHUB_OUTPUT
             else
-              # Critical: Supabase routes requests based on the JWT ref claim,
-              # not the URL. Must fetch the service_role key for the branch via
-              # the Management API — the GitHub Action only returns anon_key.
-              echo "Fetching service_role key from Supabase Management API..."
+              # Critical: JWT tokens carry routing via the ref claim.
+              # Must fetch branch-specific service_role key from Management API.
+              echo "Fetching API keys from Supabase Management API..."
 
               API_KEYS_RESPONSE=$(curl -s -X GET \
                 "https://api.supabase.com/v1/projects/${BRANCH_REF}/api-keys" \
@@ -123,45 +101,43 @@ jobs:
                 ANON_KEY=$(echo "$API_KEYS_RESPONSE" | jq -r '.[] | select(.name == "anon") | .api_key // empty')
 
                 if [ -n "$SERVICE_ROLE_KEY" ]; then
-                  echo "Successfully retrieved branch service_role key"
-                  echo "SUPABASE_KEY=${ANON_KEY:-${{ steps.supabase_branch.outputs.anon_key }}}" >> $GITHUB_ENV
+                  echo "Successfully retrieved branch API keys"
+                  echo "SUPABASE_ANON_KEY=${ANON_KEY:-${{ steps.supabase_branch.outputs.anon_key }}}" >> $GITHUB_ENV
                   echo "SUPABASE_SERVICE_KEY=$SERVICE_ROLE_KEY" >> $GITHUB_ENV
                   echo "service_role_key_source=branch_api" >> $GITHUB_OUTPUT
                 else
-                  echo "WARNING: Could not find service_role key in API response"
-                  echo "Falling back to anon_key from branch action"
-                  echo "SUPABASE_KEY=${{ steps.supabase_branch.outputs.anon_key }}" >> $GITHUB_ENV
+                  echo "WARNING: Could not find service_role key"
+                  echo "SUPABASE_ANON_KEY=${{ steps.supabase_branch.outputs.anon_key }}" >> $GITHUB_ENV
                   echo "SUPABASE_SERVICE_KEY=${{ steps.supabase_branch.outputs.anon_key }}" >> $GITHUB_ENV
                   echo "service_role_key_source=anon_key_fallback" >> $GITHUB_OUTPUT
                 fi
               else
-                echo "WARNING: Failed to fetch API keys from Management API"
-                echo "Falling back to anon_key from branch action"
-                echo "SUPABASE_KEY=${{ steps.supabase_branch.outputs.anon_key }}" >> $GITHUB_ENV
+                echo "WARNING: Failed to fetch API keys"
+                echo "SUPABASE_ANON_KEY=${{ steps.supabase_branch.outputs.anon_key }}" >> $GITHUB_ENV
                 echo "SUPABASE_SERVICE_KEY=${{ steps.supabase_branch.outputs.anon_key }}" >> $GITHUB_ENV
                 echo "service_role_key_source=anon_key_fallback" >> $GITHUB_OUTPUT
               fi
             fi
           else
-            echo "Supabase branch credentials not available"
+            echo "Supabase branch credentials not available — using production"
+            echo "SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}" >> $GITHUB_ENV
+            echo "SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" >> $GITHUB_ENV
+            echo "SUPABASE_SERVICE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" >> $GITHUB_ENV
             echo "branch_exists=false" >> $GITHUB_OUTPUT
+            echo "service_role_key_source=production" >> $GITHUB_OUTPUT
           fi
 
       - name: Apply migrations to branch database
         id: supabase_migrate
-        if: ${{ steps.supabase_env.outputs.branch_exists == 'true' }}
+        if: steps.supabase_env.outputs.branch_exists == 'true'
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           BRANCH_REF="${{ steps.supabase_env.outputs.branch_project_ref }}"
           echo "Applying migrations to branch database: $BRANCH_REF"
 
-          # Link to the branch database
-          echo "Linking to branch database..."
           supabase link --project-ref "$BRANCH_REF"
 
-          # Apply pending migrations
-          echo "Pushing migrations to branch database..."
           if supabase db push; then
             echo "Migrations applied successfully"
             echo "migration_status=success" >> $GITHUB_OUTPUT
@@ -170,33 +146,87 @@ jobs:
             echo "migration_status=failed" >> $GITHUB_OUTPUT
           fi
 
+      - name: Configure Supabase branch auth redirect URLs
+        id: supabase_auth
+        if: steps.supabase_env.outputs.branch_exists == 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          BRANCH_REF="${{ steps.supabase_env.outputs.branch_project_ref }}"
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+
+          # Render preview URL pattern: {service-name}-pr-{number}.onrender.com
+          # The base service name is fetched from Render API during the
+          # preview wait step. Use a generic pattern here.
+          PREVIEW_BASE_URL="https://app-pr-${PR_NUMBER}.onrender.com"
+          PREVIEW_WILDCARD="${PREVIEW_BASE_URL}/**"
+
+          echo "Configuring auth for branch: $BRANCH_REF"
+          echo "Preview URL: $PREVIEW_BASE_URL"
+
+          AUTH_CONFIG=$(curl -s -X GET \
+            "https://api.supabase.com/v1/projects/${BRANCH_REF}/config/auth" \
+            -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+            -H "Content-Type: application/json")
+
+          if ! echo "$AUTH_CONFIG" | jq -e '.site_url' > /dev/null 2>&1; then
+            echo "WARNING: Could not fetch auth config — API may not be available for branches"
+            echo "auth_configured=skipped" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          CURRENT_URLS=$(echo "$AUTH_CONFIG" | jq -r '.uri_allow_list // ""')
+
+          if echo "$CURRENT_URLS" | grep -q "$PREVIEW_WILDCARD"; then
+            echo "Preview URL already in redirect list"
+            echo "auth_configured=already_configured" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          if [ -n "$CURRENT_URLS" ]; then
+            NEW_URLS="${CURRENT_URLS},${PREVIEW_WILDCARD}"
+          else
+            NEW_URLS="${PREVIEW_WILDCARD}"
+          fi
+
+          UPDATE_RESPONSE=$(curl -s -X PATCH \
+            "https://api.supabase.com/v1/projects/${BRANCH_REF}/config/auth" \
+            -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "{\"uri_allow_list\": \"$NEW_URLS\", \"site_url\": \"$PREVIEW_BASE_URL\"}")
+
+          if echo "$UPDATE_RESPONSE" | jq -e '.uri_allow_list' > /dev/null 2>&1; then
+            echo "Auth redirect URLs updated successfully"
+            echo "auth_configured=true" >> $GITHUB_OUTPUT
+          else
+            echo "WARNING: Failed to update auth redirect URLs"
+            echo "Response: ${UPDATE_RESPONSE:0:500}"
+            echo "auth_configured=false" >> $GITHUB_OUTPUT
+          fi
+
       # ── Render Preview Deployment ─────────────────────────────────────
 
-      - name: Wait for Render preview deployment
+      - name: Wait for Render preview service
         id: render_preview
-        if: steps.check_render.outputs.skip != 'true'
         env:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
           RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
         run: |
           PR_NUMBER="${{ github.event.pull_request.number }}"
-          echo "Waiting for Render preview deployment for PR #${PR_NUMBER}..."
+          echo "Waiting for Render preview service for PR #${PR_NUMBER}..."
 
-          if [ -z "$RENDER_SERVICE_ID" ]; then
-            echo "RENDER_SERVICE_ID not configured"
-            echo "preview_ready=false" >> "$GITHUB_OUTPUT"
+          if [ -z "$RENDER_API_KEY" ] || [ -z "$RENDER_SERVICE_ID" ]; then
+            echo "RENDER_API_KEY or RENDER_SERVICE_ID not configured"
+            echo "preview_found=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          # Poll for the preview service to be created and deployed
           MAX_ATTEMPTS=60
           ATTEMPT=0
-          PREVIEW_URL=""
 
           while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
             ATTEMPT=$((ATTEMPT + 1))
 
-            # List services and find the preview for this PR
             SERVICES_RESPONSE=$(curl -s -X GET \
               "https://api.render.com/v1/services?limit=100" \
               -H "Authorization: Bearer ${RENDER_API_KEY}" \
@@ -206,79 +236,74 @@ jobs:
               '[.[] | select(.service.name | test("pr-" + $pr + "$"; "i") or test("pr " + $pr + "$"; "i") or test("#" + $pr + "$"))] | .[0]')
 
             if [ "$PREVIEW_SERVICE" != "null" ] && [ -n "$PREVIEW_SERVICE" ]; then
-              PREVIEW_SERVICE_ID=$(echo "$PREVIEW_SERVICE" | jq -r '.service.id')
-              PREVIEW_URL=$(echo "$PREVIEW_SERVICE" | jq -r '.service.serviceDetails.url // empty')
+              SVC_ID=$(echo "$PREVIEW_SERVICE" | jq -r '.service.id')
+              SVC_URL=$(echo "$PREVIEW_SERVICE" | jq -r '.service.serviceDetails.url // empty')
 
-              if [ -n "$PREVIEW_SERVICE_ID" ] && [ "$PREVIEW_SERVICE_ID" != "null" ]; then
-                # Check if the service is deployed and ready
+              if [ -n "$SVC_ID" ] && [ "$SVC_ID" != "null" ]; then
+                echo "Found preview service: $SVC_ID"
+                echo "preview_service_id=$SVC_ID" >> "$GITHUB_OUTPUT"
+                echo "preview_url=$SVC_URL" >> "$GITHUB_OUTPUT"
+                echo "preview_found=true" >> "$GITHUB_OUTPUT"
+
+                # Check current deploy status
                 DEPLOY_STATUS=$(curl -s -X GET \
-                  "https://api.render.com/v1/services/${PREVIEW_SERVICE_ID}/deploys?limit=1" \
+                  "https://api.render.com/v1/services/${SVC_ID}/deploys?limit=1" \
                   -H "Authorization: Bearer ${RENDER_API_KEY}" \
                   -H "Accept: application/json" | jq -r '.[0].deploy.status // "unknown"')
 
-                if [ "$DEPLOY_STATUS" = "live" ]; then
-                  echo "Preview deployment is live!"
-                  echo "preview_service_id=$PREVIEW_SERVICE_ID" >> "$GITHUB_OUTPUT"
-                  echo "preview_url=$PREVIEW_URL" >> "$GITHUB_OUTPUT"
-                  echo "preview_ready=true" >> "$GITHUB_OUTPUT"
-                  break
-                elif [ "$DEPLOY_STATUS" = "build_failed" ] || [ "$DEPLOY_STATUS" = "canceled" ]; then
-                  echo "Deploy failed: $DEPLOY_STATUS"
-                  echo "preview_service_id=$PREVIEW_SERVICE_ID" >> "$GITHUB_OUTPUT"
-                  echo "preview_ready=false" >> "$GITHUB_OUTPUT"
-                  break
-                fi
+                echo "Current deploy status: $DEPLOY_STATUS"
+                echo "deploy_status=$DEPLOY_STATUS" >> "$GITHUB_OUTPUT"
+                break
               fi
             fi
 
-            echo "Attempt $ATTEMPT/$MAX_ATTEMPTS: preview not ready, waiting 10s..."
+            echo "Attempt $ATTEMPT/$MAX_ATTEMPTS: preview not found, waiting 10s..."
             sleep 10
           done
 
-          if [ -z "$PREVIEW_URL" ] || [ "$PREVIEW_URL" = "null" ]; then
-            # Construct fallback URL from base service name
+          # Fallback if not found
+          if [ -z "$SVC_ID" ] || [ "$SVC_ID" = "null" ]; then
             BASE_NAME=$(curl -s -X GET \
               "https://api.render.com/v1/services/${RENDER_SERVICE_ID}" \
               -H "Authorization: Bearer ${RENDER_API_KEY}" \
               -H "Accept: application/json" | jq -r '.name // "app"')
-            PREVIEW_URL="https://${BASE_NAME}-pr-${PR_NUMBER}.onrender.com"
-            echo "preview_url=$PREVIEW_URL" >> "$GITHUB_OUTPUT"
-            echo "preview_ready=false" >> "$GITHUB_OUTPUT"
+            echo "preview_url=https://${BASE_NAME}-pr-${PR_NUMBER}.onrender.com" >> "$GITHUB_OUTPUT"
+            echo "preview_found=false" >> "$GITHUB_OUTPUT"
           fi
 
       # ── Inject Supabase credentials into Render preview ───────────────
 
       - name: Update Render preview environment variables
         id: render_env
-        if: ${{ steps.render_preview.outputs.preview_ready == 'true' && steps.supabase_env.outputs.branch_exists == 'true' }}
+        if: steps.render_preview.outputs.preview_found == 'true'
         env:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
         run: |
           PREVIEW_SERVICE_ID="${{ steps.render_preview.outputs.preview_service_id }}"
-          echo "Updating Supabase env vars for preview service: $PREVIEW_SERVICE_ID"
+          echo "Updating env vars for preview service: $PREVIEW_SERVICE_ID"
 
-          # Get current environment variables
           CURRENT_VARS=$(curl -s -X GET \
             "https://api.render.com/v1/services/${PREVIEW_SERVICE_ID}/env-vars" \
             -H "Authorization: Bearer ${RENDER_API_KEY}" \
             -H "Accept: application/json")
 
-          SUPABASE_URL_VALUE="${SUPABASE_URL}"
-          SUPABASE_KEY_VALUE="${SUPABASE_KEY}"
-          SUPABASE_SERVICE_KEY_VALUE="${SUPABASE_SERVICE_KEY:-$SUPABASE_KEY}"
+          echo "Current env vars count: $(echo "$CURRENT_VARS" | jq 'length')"
 
-          # Filter out Supabase vars we're replacing, then add new values
+          # Map to Next.js env var names used by the app
           UPDATED_VARS=$(echo "$CURRENT_VARS" | jq \
-            --arg surl "$SUPABASE_URL_VALUE" \
-            --arg skey "$SUPABASE_KEY_VALUE" \
-            --arg sskey "$SUPABASE_SERVICE_KEY_VALUE" \
-            '[.[] | select(.envVar.key != "SUPABASE_URL" and .envVar.key != "SUPABASE_KEY" and .envVar.key != "SUPABASE_SERVICE_KEY") | {key: .envVar.key, value: .envVar.value}] + [
-              {key: "SUPABASE_URL", value: $surl},
-              {key: "SUPABASE_KEY", value: $skey},
-              {key: "SUPABASE_SERVICE_KEY", value: $sskey}
+            --arg surl "${SUPABASE_URL}" \
+            --arg sanonkey "${SUPABASE_ANON_KEY}" \
+            --arg sservicekey "${SUPABASE_SERVICE_KEY}" \
+            '[.[] | select(
+              .envVar.key != "NEXT_PUBLIC_SUPABASE_URL" and
+              .envVar.key != "NEXT_PUBLIC_SUPABASE_ANON_KEY" and
+              .envVar.key != "SUPABASE_SERVICE_ROLE_KEY"
+            ) | {key: .envVar.key, value: .envVar.value}] + [
+              {key: "NEXT_PUBLIC_SUPABASE_URL", value: $surl},
+              {key: "NEXT_PUBLIC_SUPABASE_ANON_KEY", value: $sanonkey},
+              {key: "SUPABASE_SERVICE_ROLE_KEY", value: $sservicekey}
             ]')
 
-          # Update the environment variables (PUT replaces all)
           UPDATE_RESPONSE=$(curl -s -X PUT \
             "https://api.render.com/v1/services/${PREVIEW_SERVICE_ID}/env-vars" \
             -H "Authorization: Bearer ${RENDER_API_KEY}" \
@@ -286,11 +311,11 @@ jobs:
             -d "$UPDATED_VARS")
 
           if echo "$UPDATE_RESPONSE" | jq -e 'type == "array"' > /dev/null 2>&1; then
-            echo "Environment variables updated successfully!"
+            echo "Environment variables updated!"
             echo "env_updated=true" >> $GITHUB_OUTPUT
           else
             echo "WARNING: Failed to update environment variables"
-            echo "Response: $UPDATE_RESPONSE"
+            echo "Response: ${UPDATE_RESPONSE:0:500}"
             echo "env_updated=false" >> $GITHUB_OUTPUT
           fi
 
@@ -301,7 +326,7 @@ jobs:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
         run: |
           PREVIEW_SERVICE_ID="${{ steps.render_preview.outputs.preview_service_id }}"
-          echo "Triggering redeploy to pick up Supabase credentials..."
+          echo "Triggering redeploy to pick up new credentials..."
 
           DEPLOY_RESPONSE=$(curl -s -X POST \
             "https://api.render.com/v1/services/${PREVIEW_SERVICE_ID}/deploys" \
@@ -313,65 +338,195 @@ jobs:
 
           if [ -n "$DEPLOY_ID" ] && [ "$DEPLOY_ID" != "null" ]; then
             echo "Deploy triggered: $DEPLOY_ID"
+            echo "deploy_id=$DEPLOY_ID" >> $GITHUB_OUTPUT
             echo "redeploy_triggered=true" >> $GITHUB_OUTPUT
           else
             echo "WARNING: Could not trigger redeploy"
+            echo "Response: ${DEPLOY_RESPONSE:0:500}"
             echo "redeploy_triggered=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Wait for redeploy to complete
+        if: steps.render_redeploy.outputs.redeploy_triggered == 'true'
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+        run: |
+          PREVIEW_SERVICE_ID="${{ steps.render_preview.outputs.preview_service_id }}"
+          DEPLOY_ID="${{ steps.render_redeploy.outputs.deploy_id }}"
+
+          echo "Waiting for deploy $DEPLOY_ID to complete..."
+
+          MAX_ATTEMPTS=60
+          ATTEMPT=0
+          STATUS="unknown"
+
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            ATTEMPT=$((ATTEMPT + 1))
+
+            STATUS=$(curl -s -X GET \
+              "https://api.render.com/v1/services/${PREVIEW_SERVICE_ID}/deploys/${DEPLOY_ID}" \
+              -H "Authorization: Bearer ${RENDER_API_KEY}" \
+              -H "Accept: application/json" | jq -r '.status // "unknown"')
+
+            echo "Deploy status: $STATUS (attempt $ATTEMPT/$MAX_ATTEMPTS)"
+
+            if [ "$STATUS" = "live" ]; then
+              echo "Deploy completed successfully!"
+              break
+            elif [ "$STATUS" = "build_failed" ] || [ "$STATUS" = "canceled" ]; then
+              echo "ERROR: Deploy failed with status: $STATUS"
+              exit 1
+            fi
+
+            sleep 10
+          done
+
+      - name: Get final preview URL
+        id: preview_url
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+        run: |
+          PREVIEW_URL="${{ steps.render_preview.outputs.preview_url }}"
+          PREVIEW_SERVICE_ID="${{ steps.render_preview.outputs.preview_service_id }}"
+
+          if [ -n "$PREVIEW_SERVICE_ID" ] && [ "$PREVIEW_SERVICE_ID" != "null" ]; then
+            FETCHED_URL=$(curl -s -X GET \
+              "https://api.render.com/v1/services/${PREVIEW_SERVICE_ID}" \
+              -H "Authorization: Bearer ${RENDER_API_KEY}" \
+              -H "Accept: application/json" | jq -r '.serviceDetails.url // empty')
+            if [ -n "$FETCHED_URL" ]; then
+              PREVIEW_URL="$FETCHED_URL"
+            fi
+          fi
+
+          if [ -n "$PREVIEW_URL" ] && [[ ! "$PREVIEW_URL" =~ ^https?:// ]]; then
+            PREVIEW_URL="https://$PREVIEW_URL"
+          fi
+
+          echo "url=$PREVIEW_URL" >> $GITHUB_OUTPUT
+          echo "Preview URL: $PREVIEW_URL"
+
+      - name: Wait for deployment stabilization
+        if: steps.render_redeploy.outputs.redeploy_triggered == 'true'
+        run: |
+          echo "Waiting 30 seconds for the container to stabilize..."
+          sleep 30
+
+      - name: Smoke test
+        id: smoke_test
+        run: |
+          PREVIEW_URL="${{ steps.preview_url.outputs.url }}"
+
+          if [ -z "$PREVIEW_URL" ] || [[ ! "$PREVIEW_URL" =~ ^https?:// ]]; then
+            echo "No valid preview URL, skipping smoke test"
+            echo "result=skipped" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "Running smoke test against: $PREVIEW_URL/api/health"
+
+          MAX_RETRIES=15
+          ATTEMPT=0
+          HEALTH_OK=false
+
+          while [ $ATTEMPT -lt $MAX_RETRIES ]; do
+            ATTEMPT=$((ATTEMPT + 1))
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "${PREVIEW_URL}/api/health" || echo "000")
+
+            if [ "$HTTP_STATUS" = "200" ]; then
+              echo "Health check passed!"
+              HEALTH_OK=true
+              break
+            fi
+
+            echo "Attempt $ATTEMPT/$MAX_RETRIES: HTTP $HTTP_STATUS, retrying in 10s..."
+            sleep 10
+          done
+
+          if [ "$HEALTH_OK" = "true" ]; then
+            echo "result=passed" >> $GITHUB_OUTPUT
+          else
+            echo "result=failed" >> $GITHUB_OUTPUT
+            exit 1
           fi
 
       # ── PR Comment ────────────────────────────────────────────────────
 
-      - name: Comment PR with preview URL
-        if: steps.check_render.outputs.skip != 'true' && always()
+      - name: Comment PR with deployment status
+        if: always()
         uses: actions/github-script@v7
         with:
           script: |
-            const previewUrl = '${{ steps.render_preview.outputs.preview_url }}';
-            const previewReady = '${{ steps.render_preview.outputs.preview_ready }}';
-            const supabaseBranch = '${{ steps.supabase_env.outputs.branch_exists }}';
+            const smokeResult = '${{ steps.smoke_test.outputs.result }}';
+            const previewUrl = '${{ steps.preview_url.outputs.url }}';
+            const branchExists = '${{ steps.supabase_env.outputs.branch_exists }}';
             const migrationStatus = '${{ steps.supabase_migrate.outputs.migration_status }}';
+            const authConfigured = '${{ steps.supabase_auth.outputs.auth_configured }}';
             const envUpdated = '${{ steps.render_env.outputs.env_updated }}';
-            const redeployTriggered = '${{ steps.render_redeploy.outputs.redeploy_triggered }}';
+            const previewFound = '${{ steps.render_preview.outputs.preview_found }}';
 
             let body = '## Preview Deployment\n\n';
-            body += `| Component | Status |\n`;
-            body += `|-----------|--------|\n`;
+            body += '| Component | Status |\n';
+            body += '|-----------|--------|\n';
             body += `| Preview URL | ${previewUrl || 'Not available'} |\n`;
-            body += `| Render | ${previewReady === 'true' ? 'Live' : 'Deploying...'} |\n`;
+            body += `| Render Service | ${previewFound === 'true' ? 'Found' : 'Not found'} |\n`;
+            body += `| Env Vars Injected | ${envUpdated === 'true' ? 'Yes' : 'No'} |\n`;
+            body += `| Supabase Branch | ${branchExists === 'true' ? 'Detected' : 'Not detected'} |\n`;
 
-            if (supabaseBranch === 'true') {
-              body += `| Supabase Branch | Detected (credentials injected) |\n`;
+            if (branchExists === 'true') {
               body += `| Migrations | ${migrationStatus === 'success' ? 'Applied' : migrationStatus === 'failed' ? 'Failed' : 'Skipped'} |\n`;
-              body += `| Env Vars Updated | ${envUpdated === 'true' ? 'Yes' : 'No'} |\n`;
-              if (redeployTriggered === 'true') {
-                body += `| Redeploy | Triggered (picking up new credentials) |\n`;
-              }
+              const authStatus = authConfigured === 'true' ? 'Configured'
+                : authConfigured === 'already_configured' ? 'Already configured'
+                : authConfigured === 'skipped' ? 'Skipped (API unavailable)'
+                : 'Not configured';
+              body += `| Auth Redirects | ${authStatus} |\n`;
+            }
+
+            body += `| Smoke Test | ${smokeResult === 'passed' ? 'Passed' : smokeResult === 'failed' ? 'Failed' : 'Skipped'} |\n\n`;
+
+            if (smokeResult === 'passed') {
+              body += `### Ready for testing\n\n${previewUrl}\n`;
+            } else if (smokeResult === 'failed') {
+              body += '### Health checks failed\n\nCheck the [workflow logs](' +
+                `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}` +
+                ') for details.\n';
             } else {
-              body += `| Supabase Branch | Not configured |\n`;
+              body += '### Deployment in progress\n\nThe preview environment is still being set up.\n';
             }
 
-            body += '\n';
-
-            if (previewReady === 'true') {
-              body += 'The preview environment is ready for testing.\n';
+            if (branchExists === 'true') {
+              body += '\n> Supabase branch database detected. Branch credentials were injected into the preview.\n';
             } else {
-              body += 'The preview environment is still deploying. ';
-              body += 'Check the Render dashboard for status.\n';
+              body += '\n> No Supabase branch detected. Preview uses production database.\n';
             }
 
-            if (supabaseBranch === 'true') {
-              body += '\n> **Supabase Branch:** This preview uses an isolated branch database with its own credentials.\n';
-              if (migrationStatus === 'success') {
-                body += '> Migrations from `supabase/migrations/` have been applied.\n';
-              }
-            }
+            body += '\n---\n*Deployed automatically by the preview-deploy workflow.*';
 
-            body += '\n---\n';
-            body += '*Preview environments are automatically deployed by Render for every PR.*';
-
-            github.rest.issues.createComment({
+            // Update existing comment or create new one
+            const { data: comments } = await github.rest.issues.listComments({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: body
             });
+
+            const existing = comments.find(c => c.body?.startsWith('## Preview Deployment'));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                comment_id: existing.id,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: body,
+              });
+            }
+
+      - name: Fail if smoke test failed
+        if: steps.smoke_test.outputs.result == 'failed'
+        run: exit 1

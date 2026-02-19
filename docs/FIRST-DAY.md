@@ -81,6 +81,25 @@ any `[FAIL]` items before continuing.
 
 ---
 
+## Step 2b: Configure GitHub Secrets
+
+Your repository needs these secrets for the preview deploy and Supabase
+branch workflows. Go to your repo > **Settings > Secrets and variables >
+Actions > New repository secret** and add each one:
+
+| Secret | Source | Required For |
+|--------|--------|-------------|
+| `SUPABASE_ACCESS_TOKEN` | Supabase Dashboard > Account > Access Tokens | Preview branch databases |
+| `SUPABASE_PROJECT_REF` | Supabase project URL (the ref segment) | Preview branch detection |
+| `RENDER_API_KEY` | Render Dashboard > Account Settings > API Keys | Preview env var injection |
+| `RENDER_SERVICE_ID` | Render service URL (starts with `srv-`) | Preview service discovery |
+
+You can add `RENDER_API_KEY` and `RENDER_SERVICE_ID` later (after creating
+your Render service in Step 5), but `SUPABASE_ACCESS_TOKEN` and
+`SUPABASE_PROJECT_REF` should be set now if you have them.
+
+---
+
 ## Step 3: Verify Three Accounts Work
 
 All three accounts must be logged into the GitHub CLI. Run:
@@ -232,6 +251,13 @@ were committed properly, the CI workflow should show a passing run.
 
 You should see: A green checkmark on the latest CI run at
 `https://github.com/{your-org}/agile-flow/actions`.
+
+> **Render production environment variables**: After creating your Render
+> service, set the following environment variables in the Render dashboard
+> (Settings > Environment): `NEXT_PUBLIC_SUPABASE_URL`,
+> `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY`. These
+> are your **production** Supabase credentials. The preview deploy workflow
+> injects branch-specific credentials automatically for PR previews.
 
 ---
 

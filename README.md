@@ -301,6 +301,49 @@ claude
 
 If configured correctly, the agent should be able to access your GitHub repositories.
 
+### MCP Servers (Required)
+
+Claude Code uses MCP (Model Context Protocol) servers to access GitHub,
+persist agent memory, and structure complex reasoning. The bootstrap
+wizard creates `.mcp.json` automatically, but you can also create it
+manually.
+
+Your `.mcp.json` (project root) should include these servers:
+
+| Server | Package | Required | Purpose |
+|--------|---------|----------|---------|
+| `github` | `@modelcontextprotocol/server-github` | Yes | Issue/PR/project board operations |
+| `memory` | `@modelcontextprotocol/server-memory` | Yes | Persistent agent context across sessions |
+| `sequential-thinking` | `@modelcontextprotocol/server-sequential-thinking` | Recommended | Structured multi-step reasoning |
+
+Create `.mcp.json` in your project root:
+
+```json
+{
+  "mcpServers": {
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}"
+      }
+    },
+    "memory": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"]
+    },
+    "sequential-thinking": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"]
+    }
+  }
+}
+```
+
+> **Workshop attendees**: Ensure your MCP servers match this list so your
+> agent experience matches the instructor's demo. Run `bash scripts/doctor.sh`
+> to verify.
+
 ## Customization
 
 ### Adding Project-Specific Context

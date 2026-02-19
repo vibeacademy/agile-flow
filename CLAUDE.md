@@ -110,6 +110,7 @@ TEMPLATE: Fill in project-specific details below when using this template.
 - **Repository**: [GitHub repo URL]
 - **Project Board**: [GitHub project board URL]
 - **Tech Stack**: [Languages, frameworks, tools]
+- **Database**: [Supabase (recommended) — provides ephemeral PR databases via branching]
 - **Organization**: [GitHub org name]
 
 ### Build & Test Commands
@@ -149,6 +150,7 @@ approved, tests passing, no lint errors, PR merged to main.
 | `docs/PLATFORM-GUIDE.md` | Deployment platform options and setup |
 | `docs/WORKSHOP-GUIDE.md` | Instructor guide for 3-day workshop |
 | `docs/GETTING-STARTED.md` | First-time setup walkthrough |
+| `docs/PRE-WORK-CHECKLIST.md` | Participant pre-workshop setup guide |
 | `docs/FIRST-DAY.md` | Participant Day 1 walkthrough |
 | `docs/FAQ.md` | Common questions for non-engineers |
 | `docs/TICKET-FORMAT.md` | Agentic PRD Lite ticket format (canonical) |

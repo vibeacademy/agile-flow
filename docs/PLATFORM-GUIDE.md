@@ -186,6 +186,76 @@ Instance > connect your repo.
 
 **Configuration file:** `fly.toml`
 
+## Database: Supabase (Recommended)
+
+Supabase is the recommended database for Agile Flow projects. Its native
+**branching** feature creates an isolated Postgres instance for each PR —
+migrations auto-applied, data fully isolated between PRs. Render's managed
+Postgres cannot do this (all preview environments share the same database).
+
+### Why Supabase
+
+- **Ephemeral PR databases** — each PR gets its own Postgres via Supabase
+  branching, with no shared state between previews
+- **Automatic migrations** — `supabase/migrations/*.sql` files are applied
+  to branch databases during preview deploy
+- **Credential injection** — `preview-deploy.yml` fetches branch-specific
+  `SUPABASE_URL`, `SUPABASE_KEY`, and `SUPABASE_SERVICE_KEY` and injects
+  them into the Render preview service
+- **Branch cleanup** — `preview-cleanup.yml` deletes the Supabase branch
+  when the PR is closed
+
+### Setup
+
+1. **Create a Supabase project** at [supabase.com](https://supabase.com)
+2. **Enable the GitHub integration** in Supabase Dashboard > Settings >
+   Integrations > GitHub to enable automatic branch creation on PRs
+3. **Add GitHub secrets** to your repository:
+
+| Secret | Where to Find |
+|--------|--------------|
+| `SUPABASE_ACCESS_TOKEN` | Supabase Dashboard > Account > Access Tokens |
+| `SUPABASE_PROJECT_REF` | Supabase Dashboard > Project Settings > General (the `Reference ID`) |
+
+4. **For production deploys**, also add:
+
+| Secret | Where to Find |
+|--------|--------------|
+| `SUPABASE_DB_URL` | Supabase Dashboard > Project Settings > Database > Connection string |
+
+### How the PR Lifecycle Works
+
+```
+PR opened
+  -> Supabase GitHub integration creates a branch database
+  -> preview-deploy.yml waits for the branch, fetches credentials
+  -> Credentials (URL, anon_key, service_role_key) injected into Render preview
+  -> Migrations applied via `supabase db push`
+  -> Render preview redeployed with branch database credentials
+
+PR closed
+  -> preview-cleanup.yml deletes the Supabase branch
+  -> Render cleans up the preview service automatically
+```
+
+### Environment Variables
+
+Your application should read these environment variables for Supabase:
+
+| Variable | Description |
+|----------|-------------|
+| `SUPABASE_URL` | Supabase project URL (branch URL in previews) |
+| `SUPABASE_KEY` | Supabase anon key (public, safe for client-side) |
+| `SUPABASE_SERVICE_KEY` | Supabase service_role key (server-side only) |
+
+### Important: JWT Ref Routing
+
+Supabase routes requests based on the JWT `ref` claim, not the URL. The
+GitHub Action (`0xbigboss/supabase-branch-gh-action`) only returns the
+`anon_key`. The `preview-deploy.yml` workflow fetches both `anon_key` and
+`service_role_key` from the Supabase Management API to ensure correct
+routing to the branch database.
+
 ## Error Monitoring
 
 The app ships with zero-config error telemetry — errors are captured and

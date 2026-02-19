@@ -66,6 +66,18 @@ MUST clean up the default Python scaffolding before proceeding:
    - One passing test
 4. **Update `CLAUDE.md`**: Replace the build/test commands section with
    commands for the new stack.
+5. **Rewrite `.github/workflows/ci.yml`**: Replace the Python-specific
+   CI jobs with stack-appropriate jobs. For Node.js/Next.js projects,
+   the CI workflow should have: lint (ESLint + markdownlint with
+   `!node_modules`), typecheck (`tsc --noEmit`), test (`npm test`),
+   build (`npm run build`), and lint-agent-policies (kept from template).
+   Remove the `python`, `test`, `typecheck`, and `build` jobs that
+   reference Python validation scripts.
+6. **Initialize UI component library** (if selected): When the
+   architecture includes shadcn/ui, run `npx shadcn@latest init --yes`
+   and install base components (`button`, `input`, `label`, `card`)
+   during scaffolding. This prevents feature PRs from being cluttered
+   with component library setup.
 
 **Non-Interactive Scaffolding**: When running scaffolding tools, always use
 non-interactive flags to avoid blocking the agent:

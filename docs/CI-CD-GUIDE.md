@@ -10,11 +10,13 @@ required secrets, and default states.
 | CI | `ci.yml` | Push/PR to main | Active | None |
 | Release | `release.yml` | Tag `v*` | Active | None |
 | Deploy | `deploy.yml` | Push to main | Inert | RENDER_API_KEY, RENDER_SERVICE_ID |
-| Preview Deploy | `preview-deploy.yml` | PR opened/updated | Inert | RENDER_API_KEY, RENDER_SERVICE_ID |
-| Preview Cleanup | `preview-cleanup.yml` | PR closed | Inert | RENDER_API_KEY, RENDER_SERVICE_ID |
+| Preview Deploy | `preview-deploy.yml` | PR opened/updated | Inert | RENDER_API_KEY, RENDER_SERVICE_ID, SUPABASE_ACCESS_TOKEN*, SUPABASE_PROJECT_REF* |
+| Preview Cleanup | `preview-cleanup.yml` | PR closed | Inert | RENDER_API_KEY, RENDER_SERVICE_ID, SUPABASE_ACCESS_TOKEN*, SUPABASE_PROJECT_REF* |
 | Auto Review | `auto-review.yml` | PR opened/ready | Active | None |
 | Auto Fix | `auto-fix.yml` | PR opened/updated | Active | None |
 | Rollback | `rollback-production.yml` | Manual dispatch | Inert | RENDER_API_KEY, RENDER_SERVICE_ID |
+
+*\* Optional — Supabase steps skip gracefully when these secrets are not configured.*
 
 ## Active by Default
 
@@ -83,21 +85,49 @@ be used for rollback.
 If a `supabase/migrations/` directory exists and `SUPABASE_DB_URL` is
 configured, database migrations run automatically after deployment.
 
+For preview environments, migrations are handled differently: the
+`preview-deploy.yml` workflow links to the Supabase branch database and
+runs `supabase db push` directly. This applies migrations to the isolated
+branch database rather than the production database.
+
 ### Preview Deploy (`preview-deploy.yml`)
 
 Creates a preview environment on Render for every pull request. Comments the
 preview URL on the PR.
 
-**Requires the same secrets as Deploy** (`RENDER_API_KEY`, `RENDER_SERVICE_ID`).
+**Required secrets:** `RENDER_API_KEY`, `RENDER_SERVICE_ID`
 
 Render must also have `previewsEnabled: true` in `render.yaml` (already
 configured in this template).
+
+**Optional Supabase secrets** (for ephemeral PR databases):
+
+| Secret | Where to Find |
+|--------|--------------|
+| `SUPABASE_ACCESS_TOKEN` | Supabase Dashboard > Account > Access Tokens |
+| `SUPABASE_PROJECT_REF` | Supabase Dashboard > Project Settings > General (Reference ID) |
+
+When Supabase is configured, the workflow:
+
+1. Waits for the Supabase GitHub integration to create a branch database
+2. Fetches branch credentials (`api_url`, `anon_key`, `service_role_key`)
+3. Applies migrations via `supabase db push`
+4. Injects `SUPABASE_URL`, `SUPABASE_KEY`, `SUPABASE_SERVICE_KEY` into the
+   Render preview service
+5. Triggers a redeploy so the preview picks up the new credentials
+
+All Supabase steps are gated on `SUPABASE_ACCESS_TOKEN` — if not configured,
+the workflow skips them gracefully and deploys normally.
 
 ### Preview Cleanup (`preview-cleanup.yml`)
 
 Cleans up preview environments when PRs are closed or merged.
 
-**Requires the same secrets as Deploy.**
+**Required secrets:** Same as Deploy.
+
+When `SUPABASE_ACCESS_TOKEN` is configured, also deletes the Supabase branch
+database using `supabase branches delete`. Continues on error if the branch
+doesn't exist (e.g., the GitHub integration already cleaned it up).
 
 ### Rollback Production (`rollback-production.yml`)
 

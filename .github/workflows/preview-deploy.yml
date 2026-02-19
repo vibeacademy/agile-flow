@@ -5,8 +5,40 @@ on:
     types: [opened, synchronize, reopened]
 
 jobs:
+  wait-for-supabase:
+    name: Wait for Supabase Branch
+    runs-on: ubuntu-latest
+    if: ${{ secrets.SUPABASE_ACCESS_TOKEN != '' }}
+    outputs:
+      branch_ready: ${{ steps.check.outputs.conclusion || 'skipped' }}
+    steps:
+      - name: Wait for Supabase Preview check
+        uses: fountainhead/action-wait-for-check@v1.2.0
+        id: check
+        continue-on-error: true
+        with:
+          checkName: Supabase Preview
+          ref: ${{ github.event.pull_request.head.sha }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # Wait up to 10 minutes for Supabase branch
+          timeoutSeconds: 600
+          intervalSeconds: 30
+
+      - name: Check Supabase branch status
+        if: steps.check.outcome == 'failure' || steps.check.outputs.conclusion != 'success'
+        run: |
+          echo "Supabase branch status: ${{ steps.check.outputs.conclusion || 'unknown' }}"
+          if [ "${{ steps.check.outcome }}" = "failure" ]; then
+            echo "Note: Could not query check status. This is often a permissions issue."
+            echo "The Supabase CLI will attempt to get branch credentials directly."
+          fi
+          echo "Continuing with Supabase CLI credential detection..."
+
   deploy-preview:
     name: Deploy to Render Preview
+    needs: [wait-for-supabase]
+    # Run even if wait-for-supabase was skipped (no SUPABASE_ACCESS_TOKEN)
+    if: always()
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -25,6 +57,120 @@ jobs:
       - name: Checkout code
         if: steps.check_render.outputs.skip != 'true'
         uses: actions/checkout@v4
+
+      # ── Supabase Branch Credential Injection ──────────────────────────
+      # All steps gated on SUPABASE_ACCESS_TOKEN — skips gracefully if
+      # Supabase is not configured.
+
+      - name: Setup Supabase CLI
+        if: ${{ steps.check_render.outputs.skip != 'true' && secrets.SUPABASE_ACCESS_TOKEN != '' }}
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Fetch branch database credentials
+        id: supabase_branch
+        if: ${{ steps.check_render.outputs.skip != 'true' && secrets.SUPABASE_ACCESS_TOKEN != '' }}
+        uses: 0xbigboss/supabase-branch-gh-action@v1
+        continue-on-error: true
+        with:
+          supabase-access-token: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          supabase-project-id: ${{ secrets.SUPABASE_PROJECT_REF }}
+          wait-for-migrations: false
+
+      - name: Set Supabase environment variables
+        id: supabase_env
+        if: ${{ steps.check_render.outputs.skip != 'true' && secrets.SUPABASE_ACCESS_TOKEN != '' }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          # Check if branch credentials were retrieved
+          if [ -n "${{ steps.supabase_branch.outputs.api_url }}" ]; then
+            echo "Using Supabase branch database"
+            # The api_url from the action includes /rest/v1 — strip it
+            BRANCH_URL="${{ steps.supabase_branch.outputs.api_url }}"
+            BRANCH_URL="${BRANCH_URL%/rest/v1}"
+
+            # Extract branch ref from URL (e.g., https://abcdef123.supabase.co -> abcdef123)
+            BRANCH_REF=$(echo "$BRANCH_URL" | sed -E 's|https://([^.]+)\.supabase\.co.*|\1|')
+
+            echo "SUPABASE_URL=$BRANCH_URL" >> $GITHUB_ENV
+            echo "branch_exists=true" >> $GITHUB_OUTPUT
+            echo "branch_project_ref=$BRANCH_REF" >> $GITHUB_OUTPUT
+            echo "Branch URL (base): $BRANCH_URL"
+            echo "Branch ref: $BRANCH_REF"
+
+            if [ -z "$BRANCH_REF" ]; then
+              echo "WARNING: Could not extract branch ref from URL"
+              echo "Falling back to anon_key from branch action"
+              echo "SUPABASE_KEY=${{ steps.supabase_branch.outputs.anon_key }}" >> $GITHUB_ENV
+              echo "service_role_key_source=anon_key_fallback" >> $GITHUB_OUTPUT
+            else
+              # Critical: Supabase routes requests based on the JWT ref claim,
+              # not the URL. Must fetch the service_role key for the branch via
+              # the Management API — the GitHub Action only returns anon_key.
+              echo "Fetching service_role key from Supabase Management API..."
+
+              API_KEYS_RESPONSE=$(curl -s -X GET \
+                "https://api.supabase.com/v1/projects/${BRANCH_REF}/api-keys" \
+                -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+                -H "Content-Type: application/json")
+
+              echo "API response (first 200 chars): ${API_KEYS_RESPONSE:0:200}"
+
+              if echo "$API_KEYS_RESPONSE" | jq -e 'type == "array"' > /dev/null 2>&1; then
+                SERVICE_ROLE_KEY=$(echo "$API_KEYS_RESPONSE" | jq -r '.[] | select(.name == "service_role") | .api_key // empty')
+                ANON_KEY=$(echo "$API_KEYS_RESPONSE" | jq -r '.[] | select(.name == "anon") | .api_key // empty')
+
+                if [ -n "$SERVICE_ROLE_KEY" ]; then
+                  echo "Successfully retrieved branch service_role key"
+                  echo "SUPABASE_KEY=${ANON_KEY:-${{ steps.supabase_branch.outputs.anon_key }}}" >> $GITHUB_ENV
+                  echo "SUPABASE_SERVICE_KEY=$SERVICE_ROLE_KEY" >> $GITHUB_ENV
+                  echo "service_role_key_source=branch_api" >> $GITHUB_OUTPUT
+                else
+                  echo "WARNING: Could not find service_role key in API response"
+                  echo "Falling back to anon_key from branch action"
+                  echo "SUPABASE_KEY=${{ steps.supabase_branch.outputs.anon_key }}" >> $GITHUB_ENV
+                  echo "SUPABASE_SERVICE_KEY=${{ steps.supabase_branch.outputs.anon_key }}" >> $GITHUB_ENV
+                  echo "service_role_key_source=anon_key_fallback" >> $GITHUB_OUTPUT
+                fi
+              else
+                echo "WARNING: Failed to fetch API keys from Management API"
+                echo "Falling back to anon_key from branch action"
+                echo "SUPABASE_KEY=${{ steps.supabase_branch.outputs.anon_key }}" >> $GITHUB_ENV
+                echo "SUPABASE_SERVICE_KEY=${{ steps.supabase_branch.outputs.anon_key }}" >> $GITHUB_ENV
+                echo "service_role_key_source=anon_key_fallback" >> $GITHUB_OUTPUT
+              fi
+            fi
+          else
+            echo "Supabase branch credentials not available"
+            echo "branch_exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Apply migrations to branch database
+        id: supabase_migrate
+        if: ${{ steps.supabase_env.outputs.branch_exists == 'true' }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          BRANCH_REF="${{ steps.supabase_env.outputs.branch_project_ref }}"
+          echo "Applying migrations to branch database: $BRANCH_REF"
+
+          # Link to the branch database
+          echo "Linking to branch database..."
+          supabase link --project-ref "$BRANCH_REF"
+
+          # Apply pending migrations
+          echo "Pushing migrations to branch database..."
+          if supabase db push; then
+            echo "Migrations applied successfully"
+            echo "migration_status=success" >> $GITHUB_OUTPUT
+          else
+            echo "WARNING: Migration failed"
+            echo "migration_status=failed" >> $GITHUB_OUTPUT
+          fi
+
+      # ── Render Preview Deployment ─────────────────────────────────────
 
       - name: Wait for Render preview deployment
         id: render_preview
@@ -72,11 +218,13 @@ jobs:
 
                 if [ "$DEPLOY_STATUS" = "live" ]; then
                   echo "Preview deployment is live!"
+                  echo "preview_service_id=$PREVIEW_SERVICE_ID" >> "$GITHUB_OUTPUT"
                   echo "preview_url=$PREVIEW_URL" >> "$GITHUB_OUTPUT"
                   echo "preview_ready=true" >> "$GITHUB_OUTPUT"
                   break
                 elif [ "$DEPLOY_STATUS" = "build_failed" ] || [ "$DEPLOY_STATUS" = "canceled" ]; then
                   echo "Deploy failed: $DEPLOY_STATUS"
+                  echo "preview_service_id=$PREVIEW_SERVICE_ID" >> "$GITHUB_OUTPUT"
                   echo "preview_ready=false" >> "$GITHUB_OUTPUT"
                   break
                 fi
@@ -98,6 +246,81 @@ jobs:
             echo "preview_ready=false" >> "$GITHUB_OUTPUT"
           fi
 
+      # ── Inject Supabase credentials into Render preview ───────────────
+
+      - name: Update Render preview environment variables
+        id: render_env
+        if: ${{ steps.render_preview.outputs.preview_ready == 'true' && steps.supabase_env.outputs.branch_exists == 'true' }}
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+        run: |
+          PREVIEW_SERVICE_ID="${{ steps.render_preview.outputs.preview_service_id }}"
+          echo "Updating Supabase env vars for preview service: $PREVIEW_SERVICE_ID"
+
+          # Get current environment variables
+          CURRENT_VARS=$(curl -s -X GET \
+            "https://api.render.com/v1/services/${PREVIEW_SERVICE_ID}/env-vars" \
+            -H "Authorization: Bearer ${RENDER_API_KEY}" \
+            -H "Accept: application/json")
+
+          SUPABASE_URL_VALUE="${SUPABASE_URL}"
+          SUPABASE_KEY_VALUE="${SUPABASE_KEY}"
+          SUPABASE_SERVICE_KEY_VALUE="${SUPABASE_SERVICE_KEY:-$SUPABASE_KEY}"
+
+          # Filter out Supabase vars we're replacing, then add new values
+          UPDATED_VARS=$(echo "$CURRENT_VARS" | jq \
+            --arg surl "$SUPABASE_URL_VALUE" \
+            --arg skey "$SUPABASE_KEY_VALUE" \
+            --arg sskey "$SUPABASE_SERVICE_KEY_VALUE" \
+            '[.[] | select(.envVar.key != "SUPABASE_URL" and .envVar.key != "SUPABASE_KEY" and .envVar.key != "SUPABASE_SERVICE_KEY") | {key: .envVar.key, value: .envVar.value}] + [
+              {key: "SUPABASE_URL", value: $surl},
+              {key: "SUPABASE_KEY", value: $skey},
+              {key: "SUPABASE_SERVICE_KEY", value: $sskey}
+            ]')
+
+          # Update the environment variables (PUT replaces all)
+          UPDATE_RESPONSE=$(curl -s -X PUT \
+            "https://api.render.com/v1/services/${PREVIEW_SERVICE_ID}/env-vars" \
+            -H "Authorization: Bearer ${RENDER_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "$UPDATED_VARS")
+
+          if echo "$UPDATE_RESPONSE" | jq -e 'type == "array"' > /dev/null 2>&1; then
+            echo "Environment variables updated successfully!"
+            echo "env_updated=true" >> $GITHUB_OUTPUT
+          else
+            echo "WARNING: Failed to update environment variables"
+            echo "Response: $UPDATE_RESPONSE"
+            echo "env_updated=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Trigger Render redeploy
+        id: render_redeploy
+        if: steps.render_env.outputs.env_updated == 'true'
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+        run: |
+          PREVIEW_SERVICE_ID="${{ steps.render_preview.outputs.preview_service_id }}"
+          echo "Triggering redeploy to pick up Supabase credentials..."
+
+          DEPLOY_RESPONSE=$(curl -s -X POST \
+            "https://api.render.com/v1/services/${PREVIEW_SERVICE_ID}/deploys" \
+            -H "Authorization: Bearer ${RENDER_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d '{"clearCache": "do_not_clear"}')
+
+          DEPLOY_ID=$(echo "$DEPLOY_RESPONSE" | jq -r '.id // empty')
+
+          if [ -n "$DEPLOY_ID" ] && [ "$DEPLOY_ID" != "null" ]; then
+            echo "Deploy triggered: $DEPLOY_ID"
+            echo "redeploy_triggered=true" >> $GITHUB_OUTPUT
+          else
+            echo "WARNING: Could not trigger redeploy"
+            echo "redeploy_triggered=false" >> $GITHUB_OUTPUT
+          fi
+
+      # ── PR Comment ────────────────────────────────────────────────────
+
       - name: Comment PR with preview URL
         if: steps.check_render.outputs.skip != 'true' && always()
         uses: actions/github-script@v7
@@ -105,18 +328,42 @@ jobs:
           script: |
             const previewUrl = '${{ steps.render_preview.outputs.preview_url }}';
             const previewReady = '${{ steps.render_preview.outputs.preview_ready }}';
+            const supabaseBranch = '${{ steps.supabase_env.outputs.branch_exists }}';
+            const migrationStatus = '${{ steps.supabase_migrate.outputs.migration_status }}';
+            const envUpdated = '${{ steps.render_env.outputs.env_updated }}';
+            const redeployTriggered = '${{ steps.render_redeploy.outputs.redeploy_triggered }}';
 
             let body = '## Preview Deployment\n\n';
             body += `| Component | Status |\n`;
             body += `|-----------|--------|\n`;
             body += `| Preview URL | ${previewUrl || 'Not available'} |\n`;
-            body += `| Status | ${previewReady === 'true' ? 'Live' : 'Deploying...'} |\n\n`;
+            body += `| Render | ${previewReady === 'true' ? 'Live' : 'Deploying...'} |\n`;
+
+            if (supabaseBranch === 'true') {
+              body += `| Supabase Branch | Detected (credentials injected) |\n`;
+              body += `| Migrations | ${migrationStatus === 'success' ? 'Applied' : migrationStatus === 'failed' ? 'Failed' : 'Skipped'} |\n`;
+              body += `| Env Vars Updated | ${envUpdated === 'true' ? 'Yes' : 'No'} |\n`;
+              if (redeployTriggered === 'true') {
+                body += `| Redeploy | Triggered (picking up new credentials) |\n`;
+              }
+            } else {
+              body += `| Supabase Branch | Not configured |\n`;
+            }
+
+            body += '\n';
 
             if (previewReady === 'true') {
               body += 'The preview environment is ready for testing.\n';
             } else {
               body += 'The preview environment is still deploying. ';
               body += 'Check the Render dashboard for status.\n';
+            }
+
+            if (supabaseBranch === 'true') {
+              body += '\n> **Supabase Branch:** This preview uses an isolated branch database with its own credentials.\n';
+              if (migrationStatus === 'success') {
+                body += '> Migrations from `supabase/migrations/` have been applied.\n';
+              }
             }
 
             body += '\n---\n';

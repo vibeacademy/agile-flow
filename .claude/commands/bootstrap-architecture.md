@@ -131,7 +131,7 @@ This phase creates:
 - Testing: [e.g., Jest]
 
 ### Database
-- Primary: [e.g., PostgreSQL 15]
+- Primary: [e.g., Supabase (PostgreSQL) — supports branching for ephemeral PR databases]
 - Cache: [e.g., Redis]
 - Search: [e.g., Elasticsearch] (if needed)
 

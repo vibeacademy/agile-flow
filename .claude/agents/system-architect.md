@@ -65,7 +65,13 @@ project's configured platform and actual requirements.
 - Vercel (serverless functions, edge, ISR)
 - Railway (containers, managed databases)
 - Fly.io (edge containers, global distribution)
+- Supabase (PostgreSQL, branching for ephemeral PR databases, Auth, Edge Functions)
 - AWS/GCP/Azure (when explicitly required)
+
+**Database recommendation:** Supabase is the recommended database for
+projects using Render. Supabase branching creates isolated Postgres
+instances per PR with auto-applied migrations — Render's managed Postgres
+cannot provide this data isolation between preview environments.
 
 **Defer to the DevOps Engineer** for platform-specific deployment,
 preview environments, and infrastructure operations.

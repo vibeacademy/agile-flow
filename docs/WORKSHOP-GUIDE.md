@@ -6,20 +6,31 @@ AI-assisted development.
 
 ## Pre-Workshop Checklist
 
-### Per Participant
+Send participants the [PRE-WORK-CHECKLIST.md](./PRE-WORK-CHECKLIST.md) at
+least one week before the workshop. It covers account creation, PAT
+generation, tool installation, and Supabase/Render setup with verification
+steps.
 
+### Per Participant (Required)
+
+- [ ] GitHub organization created
 - [ ] GitHub account with personal access token (fine-grained, repo + project scope)
-- [ ] Worker bot account (`{org}-worker`) with PAT
-- [ ] Reviewer bot account (`{org}-reviewer`) with PAT
-- [ ] Fork of `agile-flow` repository
-- [ ] GitHub Project board created (Backlog, Ready, In Progress, In Review, Done)
-- [ ] Branch protection rule on `main` (require PR, require status checks)
+- [ ] Worker bot account (`{org}-worker`) with PAT, invited to org
+- [ ] Reviewer bot account (`{org}-reviewer`) with PAT, invited to org
 - [ ] Claude Code CLI installed and authenticated
+- [ ] Supabase account with project created
+- [ ] Supabase access token generated
+- [ ] Supabase GitHub integration enabled for their org
+- [ ] Git, Node.js 18+, Python 3.11+, uv installed
 
-### Per Participant (Optional, Enable When Ready)
+### Per Participant (During Workshop)
 
+- [ ] Fork of `agile-flow` repository
+- [ ] `SUPABASE_ACCESS_TOKEN` and `SUPABASE_PROJECT_REF` added to repo secrets
 - [ ] Render account with service created
 - [ ] `RENDER_API_KEY` and `RENDER_SERVICE_ID` added to repo secrets
+- [ ] GitHub Project board created (Backlog, Ready, In Progress, In Review, Done)
+- [ ] Branch protection rule on `main` (require PR, require status checks)
 - [ ] (Optional) Sentry project created with DSN — not required for zero-config error flow
 - [ ] (Optional) `SENTRY_DSN` added to Render environment variables
 

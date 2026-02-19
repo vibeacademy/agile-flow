@@ -95,6 +95,18 @@ fly deploy
 **Render:** Automatic via `previewsEnabled: true` in `render.yaml`.
 Preview services follow the pattern `{service}-pr-{number}`.
 
+When Supabase is configured (`SUPABASE_ACCESS_TOKEN` secret), the
+`preview-deploy.yml` workflow also:
+- Waits for the Supabase GitHub integration to create a branch database
+- Fetches branch credentials (URL, anon_key, service_role_key) via the
+  Supabase Management API
+- Injects `SUPABASE_URL`, `SUPABASE_KEY`, `SUPABASE_SERVICE_KEY` into
+  the Render preview service environment variables
+- Triggers a redeploy so the preview picks up branch database credentials
+
+On PR close, `preview-cleanup.yml` deletes the Supabase branch via
+`supabase branches delete`.
+
 **Cloudflare:** Deploy preview Workers with naming `{app}-pr-{number}`.
 Use dynamic `wrangler-preview.toml` configuration.
 
@@ -139,6 +151,7 @@ Periodically audit for:
 - Vercel via `vercel`
 - Railway via `railway`
 - Fly.io via `fly`
+- Supabase via `supabase` (branching, migrations, credential management)
 
 ## Decision-Making Framework
 

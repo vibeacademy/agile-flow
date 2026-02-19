@@ -53,7 +53,8 @@ When the user selects a non-Python stack (e.g., Node.js/Next.js, Go), you
 MUST clean up the default Python scaffolding before proceeding:
 
 1. **Remove Python files**: Delete `pyproject.toml`, `uv.lock`, `app/`
-   (if it contains Python code), and `tests/` (if Python tests).
+   (if it contains Python code), `tests/` (if Python tests), and any
+   `tests/test_*.py` files.
 2. **Update `render.yaml`**: Replace the Python build/start commands with
    the appropriate runtime. Reference templates:
    - **Node.js**: `buildCommand: npm install && npm run build`,
@@ -61,18 +62,21 @@ MUST clean up the default Python scaffolding before proceeding:
    - **Go**: `buildCommand: go build -o server .`,
      `startCommand: ./server`
 3. **Scaffold a minimal starter app**: Include at minimum:
+   - A root `/` route serving a landing page
    - A `/health` endpoint returning `{"status": "ok"}`
    - A `/error` endpoint that raises a deliberate error (for Sentry testing)
    - One passing test
 4. **Update `CLAUDE.md`**: Replace the build/test commands section with
    commands for the new stack.
-5. **Rewrite `.github/workflows/ci.yml`**: Replace the Python-specific
-   CI jobs with stack-appropriate jobs. For Node.js/Next.js projects,
-   the CI workflow should have: lint (ESLint + markdownlint with
+5. **Rewrite CI workflows (`ci.yml` and `auto-fix.yml`)**: Replace the
+   Python-specific CI jobs with stack-appropriate jobs. For Node.js/Next.js
+   projects, the CI workflow should have: lint (ESLint + markdownlint with
    `!node_modules`), typecheck (`tsc --noEmit`), test (`npm test`),
    build (`npm run build`), and lint-agent-policies (kept from template).
    Remove the `python`, `test`, `typecheck`, and `build` jobs that
-   reference Python validation scripts.
+   reference Python validation scripts. Update `auto-fix.yml` to use
+   `npx eslint . --fix` instead of (or in addition to) `ruff` for
+   Node.js projects.
 6. **Initialize UI component library** (if selected): When the
    architecture includes shadcn/ui, run `npx shadcn@latest init --yes`
    and install base components (`button`, `input`, `label`, `card`)

@@ -54,7 +54,7 @@ Tell the agent the Input, Logic, and Output flow.
 Tell the agent how to PROVE it succeeded. Not "it works." Not "tests pass."
 
 - **Specific test assertions** -- "Assert that `GET /api/foo` returns HTTP 200 with body `{\"bar\": \"baz\"}`."
-- **Lint and type checks** -- "Zero errors from `mypy --strict` and `ruff check`."
+- **Lint and type checks** -- Zero errors from the project's configured linter and type checker (e.g., `ruff check` + `mypy` for Python, `eslint` + `tsc` for TypeScript).
 - **Integration verification** -- "The new endpoint is callable from the existing API gateway config."
 - **Reviewer checklist** -- what the PR reviewer should be able to verify by inspection or by running one command.
 
@@ -107,6 +107,11 @@ Priority: P1
 - render.yaml health-check path is updated to /ping (or verified already correct).
 - PR reviewer can run `curl localhost:8000/ping` and see {"ping": "pong"}.
 ```
+
+> **Note:** This example shows a Python/FastAPI project. Adapt file paths
+> (e.g., `src/routes/` → `src/app/api/`), lint commands (e.g., `ruff` →
+> `eslint`, `mypy` → `tsc`), and test runners (e.g., `pytest` → `vitest`)
+> to match your project's actual stack as defined in TECHNICAL-ARCHITECTURE.md.
 
 ---
 

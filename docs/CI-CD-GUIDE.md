@@ -41,6 +41,12 @@ The `python` job is conditional — it only runs when `pyproject.toml` exists.
 Coverage threshold defaults to 80% and can be overridden via the
 `COVERAGE_THRESHOLD` environment variable.
 
+For **Node.js projects** (after stack transition), the `python` job is
+removed and replaced with stack-appropriate jobs: `lint` (ESLint),
+`typecheck` (`tsc --noEmit`), `test` (`npm test`), and `build`
+(`npm run build`). See the Stack Transition section of
+`bootstrap-architecture.md` for details.
+
 If a `features/` directory with `.feature` files exists, BDD tests run
 automatically.
 
@@ -56,9 +62,14 @@ Posts a review reminder comment on new PRs, prompting the team to run
 
 ### Auto Fix (`auto-fix.yml`)
 
-Automatically fixes lint issues on PR branches. For Python projects,
-runs `ruff check --fix` and `ruff format`, then commits the results
-back to the PR branch.
+Automatically fixes lint issues on PR branches. Detects the project
+type and runs the appropriate fixer:
+
+- **Python** (when `pyproject.toml` exists): runs `ruff check --fix`
+  and `ruff format`
+- **Node.js** (when `package.json` exists): runs `npx eslint . --fix`
+
+Fixed files are committed back to the PR branch automatically.
 
 ## Enable When Ready
 
@@ -152,6 +163,10 @@ Emergency rollback triggered manually via GitHub Actions UI.
 | `python` tests fail | Test failures or coverage below threshold | Fix tests or lower `COVERAGE_THRESHOLD` |
 | `lint-agent-policies` fails | Agent file missing safety phrases | Check `scripts/verify-agent-restrictions.sh` output |
 | `build` fails | Shell script errors | Run `shellcheck <script>` locally |
+| `lint` fails (ESLint) | ESLint violations (Node.js) | Run `npx eslint . --fix` |
+| `typecheck` fails (tsc) | TypeScript type errors (Node.js) | Run `npx tsc --noEmit` and fix reported errors |
+| `test` fails (Node.js) | Test failures (Node.js) | Run `npm test` locally |
+| `auto-fix` skips your stack | No fixer detected | Ensure `pyproject.toml` (Python) or `package.json` (Node.js) exists in the repo root |
 
 ### Secret-Gated Workflows Show "Skipped"
 

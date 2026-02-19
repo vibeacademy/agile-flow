@@ -78,8 +78,12 @@ npx markdownlint --fix **/*.md
 # Fix Python code style issues (if your project uses Python)
 uv run ruff check . --fix
 
+# Fix Node.js code style issues (if your project uses Node.js)
+npx eslint . --fix
+
 # Re-run tests locally to see what broke
-uv run pytest
+uv run pytest          # Python
+npm test               # Node.js
 ```
 
 If you are stuck, look at the CI error message -- it usually tells you

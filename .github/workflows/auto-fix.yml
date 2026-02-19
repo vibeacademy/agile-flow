@@ -38,6 +38,29 @@ jobs:
           uv run --extra dev ruff check . --fix --exit-zero
           uv run --extra dev ruff format . --check || uv run --extra dev ruff format .
 
+      - name: Check for Node.js project
+        id: check_node
+        run: |
+          if [ -f "package.json" ]; then
+            echo "is_node=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_node=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Node.js
+        if: steps.check_node.outputs.is_node == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        if: steps.check_node.outputs.is_node == 'true'
+        run: npm ci
+
+      - name: Run eslint fix
+        if: steps.check_node.outputs.is_node == 'true'
+        run: npx eslint . --fix --no-error-on-unmatched-pattern || true
+
       - name: Check for changes
         id: changes
         run: |

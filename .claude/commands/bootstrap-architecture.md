@@ -47,6 +47,36 @@ Write the platform choice to `.claude/PROJECT.md`:
 This file is read by the `devops-engineer` and `system-architect` agents
 to provide platform-specific guidance.
 
+### Stack Transition
+
+When the user selects a non-Python stack (e.g., Node.js/Next.js, Go), you
+MUST clean up the default Python scaffolding before proceeding:
+
+1. **Remove Python files**: Delete `pyproject.toml`, `uv.lock`, `app/`
+   (if it contains Python code), and `tests/` (if Python tests).
+2. **Update `render.yaml`**: Replace the Python build/start commands with
+   the appropriate runtime. Reference templates:
+   - **Node.js**: `buildCommand: npm install && npm run build`,
+     `startCommand: npm start`
+   - **Go**: `buildCommand: go build -o server .`,
+     `startCommand: ./server`
+3. **Scaffold a minimal starter app**: Include at minimum:
+   - A `/health` endpoint returning `{"status": "ok"}`
+   - A `/error` endpoint that raises a deliberate error (for Sentry testing)
+   - One passing test
+4. **Update `CLAUDE.md`**: Replace the build/test commands section with
+   commands for the new stack.
+
+**Non-Interactive Scaffolding**: When running scaffolding tools, always use
+non-interactive flags to avoid blocking the agent:
+
+| Tool | Flag |
+|------|------|
+| `create-next-app` | `--yes` (or `--ts --tailwind --eslint --app --src-dir --no-import-alias`) |
+| `npm init` | `--yes` or `-y` |
+| `create-vite` | Pass all options via CLI flags |
+| `go mod init` | Non-interactive by default |
+
 ### 1. PRD Analysis
 The architect first analyzes your Product Requirements:
 - What features need to be built?
@@ -221,4 +251,49 @@ The architect will recommend patterns based on your needs:
 4. Review the proposed architecture
 5. Iterate until satisfied
 
-When complete, run `./bootstrap.sh` to continue to Phase 3.
+When complete, run `bash bootstrap.sh` to continue to Phase 3.
+
+## React/Next.js Testing Guidance
+
+When the chosen stack includes React (e.g., Next.js with Vitest and React
+Testing Library), the Vitest setup file MUST include cleanup after each
+test to prevent DOM leaks:
+
+```typescript
+// vitest.setup.ts
+import { cleanup } from '@testing-library/react';
+import { afterEach } from 'vitest';
+
+afterEach(() => {
+  cleanup();
+});
+```
+
+Register this file in `vitest.config.ts`:
+
+```typescript
+export default defineConfig({
+  test: {
+    environment: 'jsdom',
+    setupFiles: ['./vitest.setup.ts'],
+  },
+});
+```
+
+## ESLint Configuration for Template Projects
+
+When scaffolding a Node.js project in a repo that previously had Python
+files, the `.venv/` directory may still exist. ESLint must be configured
+to ignore it:
+
+```javascript
+// eslint.config.mjs
+export default [
+  {
+    ignores: ['.venv/', 'node_modules/', '.next/', 'dist/'],
+  },
+  // ... other config
+];
+```
+
+This prevents ESLint from attempting to parse Python virtualenv files.

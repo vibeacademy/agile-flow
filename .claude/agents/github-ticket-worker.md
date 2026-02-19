@@ -283,6 +283,65 @@ so institutional knowledge persists across sessions.
 | PatternDiscovered | Pattern-{short-name} | When a reusable pattern emerges |
 | LessonLearned | Lesson-{short-name} | When a gotcha or workaround is found |
 
+## Framework-Specific Testing Patterns
+
+### React / Next.js with Vitest
+
+When working on a React or Next.js project that uses Vitest and React
+Testing Library, every test file that renders components MUST call
+`cleanup()` after each test. This is typically handled via a setup file:
+
+```typescript
+// vitest.setup.ts
+import { cleanup } from '@testing-library/react';
+import { afterEach } from 'vitest';
+
+afterEach(() => {
+  cleanup();
+});
+```
+
+If a `vitest.setup.ts` file exists and includes this cleanup, you do NOT
+need to add `cleanup()` in individual test files. If no setup file exists,
+add cleanup directly:
+
+```typescript
+import { cleanup, render, screen } from '@testing-library/react';
+import { afterEach, describe, it, expect } from 'vitest';
+
+afterEach(() => { cleanup(); });
+```
+
+## Non-Interactive Scaffolding
+
+When scaffolding new projects or adding dependencies via CLI tools, always
+use non-interactive flags. Interactive prompts will hang the agent.
+
+| Tool | Non-Interactive Flag |
+|------|---------------------|
+| `create-next-app` | `--yes` or explicit flags (`--ts --eslint --app`) |
+| `npm init` | `-y` |
+| `create-vite` | Pass template via `--template react-ts` |
+| `npx create-react-app` | Non-interactive by default |
+| `go mod init` | Non-interactive by default |
+| `uv init` | Non-interactive by default |
+
+## ESLint Ignore Patterns
+
+When working in a repository that may have artifacts from a previous stack
+(e.g., Python `.venv/` directory), ensure the ESLint config ignores them:
+
+```javascript
+// eslint.config.mjs
+export default [
+  { ignores: ['.venv/', 'node_modules/', '.next/', 'dist/'] },
+  // ... rest of config
+];
+```
+
+Always include `.venv/` in ESLint ignores for any Node.js project created
+from this template, since the template starts with a Python scaffolding.
+
 ## Communication Style
 
 - Provide clear progress updates in ticket comments

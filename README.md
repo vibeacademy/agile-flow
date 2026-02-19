@@ -342,23 +342,24 @@ create it manually in your project root:
 }
 ```
 
-#### Option B: Claude Code on the web (claude.ai)
+#### Option B: Claude Desktop app
 
-The web UI does **not** read `.mcp.json` from your project. Instead,
-configure MCP servers in your account:
+The desktop app does **not** read `.mcp.json` from your project. Instead,
+add the same `mcpServers` block to your desktop config file:
 
-1. Go to [claude.ai/settings/connectors](https://claude.ai/settings/connectors)
-2. Add each of the three servers listed above
-3. Once added, they are automatically available in every Claude Code
-   session on the web
+- **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
 
-> **Note:** MCP servers configured on the web and in the CLI are
+If the file already exists, merge the `mcpServers` entries into it. If
+it doesn't exist, create it with the same JSON shown above.
+
+> **Note:** MCP servers configured in the desktop app and in the CLI are
 > independent. If you use both, configure servers in both places.
 
 #### Verifying MCP
 
-In any Claude Code session (terminal or web), run `/mcp` to confirm all
-three servers are connected.
+In any Claude Code session (terminal or desktop), run `/mcp` to confirm
+all three servers are connected.
 
 > **Workshop attendees**: Ensure your MCP servers match this list so your
 > agent experience matches the instructor's demo. Run `bash scripts/doctor.sh`

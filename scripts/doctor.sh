@@ -18,7 +18,7 @@
 #
 # Ends with a machine-readable summary block for the slash command to parse.
 
-set -euo pipefail
+set -uo pipefail
 
 # Ensure bash even if invoked as `zsh scripts/doctor.sh`
 if [ -z "$BASH_VERSION" ]; then
@@ -205,6 +205,10 @@ fi
 # ═══════════════════════════════════════════════════════════════════
 section "GitHub Auth"
 
+if ! command -v gh &>/dev/null; then
+    skip "GitHub Auth" "All checks" "gh CLI not installed"
+else
+
 # Save current gh user for safe restore after switch tests
 ORIGINAL_GH_USER=$(gh api user --jq '.login' 2>/dev/null || echo "")
 
@@ -257,6 +261,8 @@ if [ -n "$ORIGINAL_GH_USER" ]; then
     gh auth switch --user "$ORIGINAL_GH_USER" &>/dev/null 2>&1 || true
 fi
 
+fi  # end gh guard
+
 # ═══════════════════════════════════════════════════════════════════
 #  4. MCP Config
 # ═══════════════════════════════════════════════════════════════════
@@ -266,37 +272,45 @@ section "MCP Config"
 if [ -f ".mcp.json" ]; then
     pass "MCP Config" ".mcp.json exists"
 
-    # github server (FAIL)
-    if jq -e '.mcpServers.github' .mcp.json &>/dev/null; then
-        pass "MCP Config" "github server configured"
+    if ! command -v jq &>/dev/null; then
+        skip "MCP Config" "Content checks (github server, memory server, npx path)" "jq not installed"
     else
-        fail "MCP Config" "github server missing from .mcp.json" "Run bootstrap.sh Phase 0 or add github server manually"
-    fi
-
-    # memory server (WARN)
-    if jq -e '.mcpServers.memory' .mcp.json &>/dev/null; then
-        pass "MCP Config" "memory server configured"
-    else
-        warn "MCP Config" "memory server missing from .mcp.json" "Optional but recommended for agent context"
-    fi
-
-    # npx path resolves (WARN)
-    mcp_npx_path=$(jq -r '.mcpServers.github.command // empty' .mcp.json 2>/dev/null)
-    if [ -n "$mcp_npx_path" ]; then
-        if [ -x "$mcp_npx_path" ] || command -v "$mcp_npx_path" &>/dev/null; then
-            pass "MCP Config" "npx command in .mcp.json resolves: $mcp_npx_path"
+        # github server (FAIL)
+        if jq -e '.mcpServers.github' .mcp.json &>/dev/null; then
+            pass "MCP Config" "github server configured"
         else
-            warn "MCP Config" "npx path in .mcp.json does not resolve: $mcp_npx_path" "Update .mcp.json command path or install npx"
+            fail "MCP Config" "github server missing from .mcp.json" "Run bootstrap.sh Phase 0 or add github server manually"
         fi
-    fi
+
+        # memory server (WARN)
+        if jq -e '.mcpServers.memory' .mcp.json &>/dev/null; then
+            pass "MCP Config" "memory server configured"
+        else
+            warn "MCP Config" "memory server missing from .mcp.json" "Optional but recommended for agent context"
+        fi
+
+        # npx path resolves (WARN)
+        mcp_npx_path=$(jq -r '.mcpServers.github.command // empty' .mcp.json 2>/dev/null)
+        if [ -n "$mcp_npx_path" ]; then
+            if [ -x "$mcp_npx_path" ] || command -v "$mcp_npx_path" &>/dev/null; then
+                pass "MCP Config" "npx command in .mcp.json resolves: $mcp_npx_path"
+            else
+                warn "MCP Config" "npx path in .mcp.json does not resolve: $mcp_npx_path" "Update .mcp.json command path or install npx"
+            fi
+        fi
+    fi  # end jq guard
 else
     fail "MCP Config" ".mcp.json not found" "Run bootstrap.sh Phase 0 to create it"
 fi
 
 # GITHUB_PERSONAL_ACCESS_TOKEN (FAIL)
 if [ -n "${GITHUB_PERSONAL_ACCESS_TOKEN:-}" ]; then
-    # Mask the token in output
-    token_preview="${GITHUB_PERSONAL_ACCESS_TOKEN:0:4}...${GITHUB_PERSONAL_ACCESS_TOKEN: -4}"
+    # Mask the token in output — guard against short tokens
+    if [ ${#GITHUB_PERSONAL_ACCESS_TOKEN} -ge 12 ]; then
+        token_preview="${GITHUB_PERSONAL_ACCESS_TOKEN:0:4}...${GITHUB_PERSONAL_ACCESS_TOKEN: -4}"
+    else
+        token_preview="(set, ${#GITHUB_PERSONAL_ACCESS_TOKEN} chars)"
+    fi
     pass "MCP Config" "GITHUB_PERSONAL_ACCESS_TOKEN set ($token_preview)"
 else
     fail "MCP Config" "GITHUB_PERSONAL_ACCESS_TOKEN not set" "export GITHUB_PERSONAL_ACCESS_TOKEN=ghp_... (needs repo + project scopes)"

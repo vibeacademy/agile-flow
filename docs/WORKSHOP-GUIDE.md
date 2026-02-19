@@ -66,7 +66,7 @@ For each bot account, create a fine-grained personal access token:
 
 1. Go to **Settings > Developer settings > Personal access tokens > Fine-grained**
 2. Token name: `agile-flow-workshop`
-3. Repository access: Select the participant's fork
+3. Repository access: Select the participant's repository
 4. Permissions:
 
 | Permission | Worker Bot | Reviewer Bot |

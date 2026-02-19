@@ -60,7 +60,7 @@ classic) for better security.
 3. Click **Generate new token**
 4. Token name: `agile-flow-workshop`
 5. Resource owner: Select your organization
-6. Repository access: **All repositories** (or select your fork later)
+6. Repository access: **All repositories** (or select your repository later)
 7. Permissions:
 
 | Permission | Access |
@@ -247,11 +247,11 @@ for every PR.
 
 ## 8. Add Secrets to Your Repository
 
-After forking the Agile Flow template during the workshop, you will need
-to add these secrets. You can prepare the values now so you are ready to
-paste them in.
+After creating your repository from the Agile Flow template during the
+workshop, you will need to add these secrets. You can prepare the values
+now so you are ready to paste them in.
 
-Go to your fork > **Settings > Secrets and variables > Actions > New
+Go to your repository > **Settings > Secrets and variables > Actions > New
 repository secret** and add:
 
 ### Required for Supabase (database)

@@ -67,3 +67,7 @@ bash scripts/doctor.sh
 - This is a **read-only diagnostic**. Do not modify any files or settings.
 - Do not launch sub-agents. Run all checks inline.
 - Derive `{owner}` and `{repo}` from `git remote get-url origin`.
+- **Non-admin users**: `gh api rulesets` and `gh secret list` may return
+  404 or 403 for users without admin access. Map these responses to
+  WARN or SKIP rather than FAIL — the checks are informational and do
+  not indicate a broken setup.

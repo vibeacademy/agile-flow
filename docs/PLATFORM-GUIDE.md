@@ -217,7 +217,7 @@ Postgres cannot do this (all preview environments share the same database).
 | `SUPABASE_ACCESS_TOKEN` | Supabase Dashboard > Account > Access Tokens |
 | `SUPABASE_PROJECT_REF` | Supabase Dashboard > Project Settings > General (the `Reference ID`) |
 
-4. **For production deploys**, also add:
+1. **For production deploys**, also add:
 
 | Secret | Where to Find |
 |--------|--------------|

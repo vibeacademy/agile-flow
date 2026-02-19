@@ -71,7 +71,7 @@ classic) for better security.
 | Projects | Read and write |
 | Metadata | Read only |
 
-8. Click **Generate token** and save it somewhere safe
+1. Click **Generate token** and save it somewhere safe
 
 ### 3b. Worker bot PAT
 
@@ -122,19 +122,19 @@ gh auth login
 # Choose: GitHub.com > HTTPS > Paste your PAT
 ```
 
-3. Log in the worker bot:
+1. Log in the worker bot:
 
 ```bash
 echo "YOUR_WORKER_PAT" | gh auth login --with-token
 ```
 
-4. Log in the reviewer bot:
+1. Log in the reviewer bot:
 
 ```bash
 echo "YOUR_REVIEWER_PAT" | gh auth login --with-token
 ```
 
-5. Verify all three accounts:
+1. Verify all three accounts:
 
 ```bash
 gh auth status
@@ -143,7 +143,7 @@ gh auth status
 **You should see:** Three accounts listed, with your personal account
 marked as active.
 
-6. Set the environment variables (add to `~/.zshrc` or `~/.bashrc`):
+1. Set the environment variables (add to `~/.zshrc` or `~/.bashrc`):
 
 ```bash
 export AGILE_FLOW_WORKER_ACCOUNT="{org}-worker"
@@ -171,7 +171,7 @@ Claude Code is the AI assistant that powers the Agile Flow agents.
 claude auth login
 ```
 
-3. Verify:
+1. Verify:
 
 ```bash
 claude --version

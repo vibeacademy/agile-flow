@@ -304,11 +304,8 @@ If configured correctly, the agent should be able to access your GitHub reposito
 ### MCP Servers (Required)
 
 Claude Code uses MCP (Model Context Protocol) servers to access GitHub,
-persist agent memory, and structure complex reasoning. The bootstrap
-wizard creates `.mcp.json` automatically, but you can also create it
-manually.
-
-Your `.mcp.json` (project root) should include these servers:
+persist agent memory, and structure complex reasoning. You need these
+three servers:
 
 | Server | Package | Required | Purpose |
 |--------|---------|----------|---------|
@@ -316,7 +313,12 @@ Your `.mcp.json` (project root) should include these servers:
 | `memory` | `@modelcontextprotocol/server-memory` | Yes | Persistent agent context across sessions |
 | `sequential-thinking` | `@modelcontextprotocol/server-sequential-thinking` | Recommended | Structured multi-step reasoning |
 
-Create `.mcp.json` in your project root:
+Setup differs depending on how you run Claude Code:
+
+#### Option A: Terminal CLI
+
+The bootstrap wizard creates `.mcp.json` automatically, but you can also
+create it manually in your project root:
 
 ```json
 {
@@ -340,9 +342,28 @@ Create `.mcp.json` in your project root:
 }
 ```
 
+#### Option B: Claude Desktop app
+
+The desktop app does **not** read `.mcp.json` from your project. Instead,
+add the same `mcpServers` block to your desktop config file:
+
+- **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
+
+If the file already exists, merge the `mcpServers` entries into it. If
+it doesn't exist, create it with the same JSON shown above.
+
+> **Note:** MCP servers configured in the desktop app and in the CLI are
+> independent. If you use both, configure servers in both places.
+
+#### Verifying MCP
+
+In any Claude Code session (terminal or desktop), run `/mcp` to confirm
+all three servers are connected.
+
 > **Workshop attendees**: Ensure your MCP servers match this list so your
 > agent experience matches the instructor's demo. Run `bash scripts/doctor.sh`
-> to verify.
+> (or `/doctor`) to verify.
 
 ## Customization
 

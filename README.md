@@ -304,11 +304,8 @@ If configured correctly, the agent should be able to access your GitHub reposito
 ### MCP Servers (Required)
 
 Claude Code uses MCP (Model Context Protocol) servers to access GitHub,
-persist agent memory, and structure complex reasoning. The bootstrap
-wizard creates `.mcp.json` automatically, but you can also create it
-manually.
-
-Your `.mcp.json` (project root) should include these servers:
+persist agent memory, and structure complex reasoning. You need these
+three servers:
 
 | Server | Package | Required | Purpose |
 |--------|---------|----------|---------|
@@ -316,7 +313,12 @@ Your `.mcp.json` (project root) should include these servers:
 | `memory` | `@modelcontextprotocol/server-memory` | Yes | Persistent agent context across sessions |
 | `sequential-thinking` | `@modelcontextprotocol/server-sequential-thinking` | Recommended | Structured multi-step reasoning |
 
-Create `.mcp.json` in your project root:
+Setup differs depending on how you run Claude Code:
+
+#### Option A: Terminal CLI
+
+The bootstrap wizard creates `.mcp.json` automatically, but you can also
+create it manually in your project root:
 
 ```json
 {
@@ -340,9 +342,27 @@ Create `.mcp.json` in your project root:
 }
 ```
 
+#### Option B: Claude Code on the web (claude.ai)
+
+The web UI does **not** read `.mcp.json` from your project. Instead,
+configure MCP servers in your account:
+
+1. Go to [claude.ai/settings/connectors](https://claude.ai/settings/connectors)
+2. Add each of the three servers listed above
+3. Once added, they are automatically available in every Claude Code
+   session on the web
+
+> **Note:** MCP servers configured on the web and in the CLI are
+> independent. If you use both, configure servers in both places.
+
+#### Verifying MCP
+
+In any Claude Code session (terminal or web), run `/mcp` to confirm all
+three servers are connected.
+
 > **Workshop attendees**: Ensure your MCP servers match this list so your
 > agent experience matches the instructor's demo. Run `bash scripts/doctor.sh`
-> to verify.
+> (or `/doctor`) to verify.
 
 ## Customization
 

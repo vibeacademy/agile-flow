@@ -41,10 +41,18 @@ run_check() {
 
 # --- Python ---
 if [ -f "pyproject.toml" ]; then
-  echo "Detected Python project"
-  echo ""
-  run_check "ruff check" uv run ruff check .
-  run_check "pytest" uv run pytest --tb=short -q
+  # Only run Python checks if uv (or pip) is available
+  if command -v uv &>/dev/null; then
+    echo "Detected Python project"
+    echo ""
+    run_check "ruff check" uv run ruff check .
+    run_check "pytest" uv run pytest --tb=short -q
+  else
+    echo -e "${YELLOW}Detected pyproject.toml but uv is not installed — skipping Python checks.${NC}"
+    echo "  If this is a Python project, install uv: https://docs.astral.sh/uv/"
+    echo "  If you switched stacks, remove pyproject.toml and the app/ directory."
+    echo ""
+  fi
 
 # --- Node.js ---
 elif [ -f "package.json" ]; then
@@ -62,26 +70,35 @@ elif [ -f "package.json" ]; then
     runner="npx"
   fi
 
-  # Lint
+  # Lint (only if runner is available)
   if command -v "$runner" &>/dev/null; then
     if [ -f ".eslintrc" ] || [ -f ".eslintrc.js" ] || [ -f ".eslintrc.json" ] || [ -f "eslint.config.js" ] || [ -f "eslint.config.mjs" ]; then
       run_check "eslint" $runner eslint .
     fi
+  else
+    echo -e "${YELLOW}Package runner '$runner' not found — skipping lint.${NC}"
   fi
 
   # Test
-  if grep -q '"vitest"' package.json 2>/dev/null; then
-    run_check "vitest" $runner vitest run
-  elif grep -q '"jest"' package.json 2>/dev/null; then
-    run_check "jest" $runner jest
+  if command -v "$runner" &>/dev/null; then
+    if grep -q '"vitest"' package.json 2>/dev/null; then
+      run_check "vitest" $runner vitest run
+    elif grep -q '"jest"' package.json 2>/dev/null; then
+      run_check "jest" $runner jest
+    fi
   fi
 
 # --- Go ---
 elif [ -f "go.mod" ]; then
-  echo "Detected Go project"
-  echo ""
-  run_check "go vet" go vet ./...
-  run_check "go test" go test ./...
+  if command -v go &>/dev/null; then
+    echo "Detected Go project"
+    echo ""
+    run_check "go vet" go vet ./...
+    run_check "go test" go test ./...
+  else
+    echo -e "${YELLOW}Detected go.mod but go is not installed — skipping Go checks.${NC}"
+    echo ""
+  fi
 
 else
   echo "No recognized project file found — skipping pre-push checks."

@@ -47,6 +47,23 @@ Write the platform choice to `.claude/PROJECT.md`:
 This file is read by the `devops-engineer` and `system-architect` agents
 to provide platform-specific guidance.
 
+### 0b. Stack Cleanup
+
+The template ships with a Python starter app (`app/`, `pyproject.toml`,
+`uv.lock`, `tests/test_app.py`). **If the user chooses a non-Python
+stack**, remove the Python files before scaffolding the new stack:
+
+```bash
+# Remove Python template files when switching to a different stack
+rm -rf app/ tests/test_app.py tests/__init__.py pyproject.toml uv.lock
+```
+
+This prevents the pre-push hook from detecting `pyproject.toml` and
+trying to run Python checks on a non-Python project.
+
+After removing the Python files, scaffold the chosen stack's project
+structure (e.g., `npx create-next-app`, `npm init`, etc.).
+
 ### 1. PRD Analysis
 The architect first analyzes your Product Requirements:
 - What features need to be built?
@@ -135,6 +152,7 @@ This phase creates:
 - [Linting rules]
 - [Formatting rules]
 - [Naming conventions]
+- ESLint configs should include `.venv/**` in `globalIgnores` (if Python venvs may coexist)
 
 ### Testing Requirements
 - Unit test coverage: [e.g., 80%]

@@ -20,7 +20,7 @@ validate_json() {
     fi
 
     # Check JSON syntax
-    if ! python3 -m json.tool "$file" > /dev/null 2>&1; then
+    if ! node -e "JSON.parse(require('fs').readFileSync('$file','utf8'))" 2>/dev/null; then
         echo "FAIL: $filename - Invalid JSON syntax"
         return 1
     fi

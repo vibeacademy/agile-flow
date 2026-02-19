@@ -28,8 +28,21 @@ talk to GitHub on your behalf. To create one:
 
 1. Go to <https://github.com/settings/tokens>.
 2. Click **"Generate new token (classic)"**.
-3. Check the `repo` and `project` boxes.
+3. Check the `repo` and `project` boxes. **Both are required** -- `repo`
+   for code access and `project` for moving tickets on the project board.
 4. Click **Generate token** and copy it somewhere safe.
+
+Set the token as an environment variable so MCP servers can use it:
+
+```bash
+export GITHUB_PERSONAL_ACCESS_TOKEN=paste_your_token_here
+```
+
+Add this to your shell profile (`~/.zshrc` or `~/.bashrc`) to persist it.
+
+> **Workshop participants**: See
+> [PRE-WORK-CHECKLIST.md](PRE-WORK-CHECKLIST.md) for the full setup
+> guide including bot accounts, Supabase, and Render.
 
 ---
 
@@ -87,6 +100,30 @@ echo $GITHUB_TOKEN
 ```
 
 You should see your token printed back.
+
+### MCP Servers
+
+Claude Code uses MCP (Model Context Protocol) servers to interact with
+GitHub, maintain memory, and perform structured reasoning. The bootstrap
+wizard creates `.mcp.json` automatically, but the GitHub MCP server
+requires `GITHUB_PERSONAL_ACCESS_TOKEN` to be set in your environment.
+
+Make sure this is in your shell profile:
+
+```bash
+export GITHUB_PERSONAL_ACCESS_TOKEN=paste_your_token_here
+```
+
+This is the same token you created above for `GITHUB_TOKEN`. The MCP
+server reads `GITHUB_PERSONAL_ACCESS_TOKEN` from the environment.
+
+**Required MCP servers** (created by `./bootstrap.sh`):
+
+| Server | Package | Purpose |
+|--------|---------|---------|
+| github | `@modelcontextprotocol/server-github` | Issue/PR management |
+| memory | `@modelcontextprotocol/server-memory` | Agent context persistence |
+| sequential-thinking | `@modelcontextprotocol/server-sequential-thinking` | Structured reasoning |
 
 ---
 

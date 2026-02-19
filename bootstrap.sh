@@ -1,9 +1,21 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Agile Flow Bootstrap Wizard
 # Guides users through progressive refinement of project context
+#
+# Usage: bash bootstrap.sh
+#
+# Requires bash 3.2+ (ships with macOS) or zsh 5.0+.
+# The #!/usr/bin/env bash shebang ensures the user's bash is found on $PATH,
+# which may be a newer version installed via Homebrew (/opt/homebrew/bin/bash).
 
 set -e
+
+# Warn if running under a shell that may not support all features
+if [ -z "$BASH_VERSION" ] && [ -z "$ZSH_VERSION" ]; then
+    echo "Warning: This script is designed for bash or zsh."
+    echo "Run it with: bash bootstrap.sh"
+fi
 
 # Colors for output
 RED='\033[0;31m'
@@ -226,8 +238,13 @@ phase0_environment() {
     # -----------------------------------------------------------------------
     print_step 2 $total_steps "Verify Claude Code CLI (claude) is installed"
 
+    # Claude Code may be on $PATH or installed as a shell alias at ~/.claude/local/claude
     if command -v claude &>/dev/null; then
         print_success "Claude Code CLI found at $(command -v claude)"
+    elif [ -x "$HOME/.claude/local/claude" ]; then
+        print_success "Claude Code CLI found at ~/.claude/local/claude"
+        print_info "Note: Claude Code is installed as a local binary. If 'claude' is"
+        print_info "not available in scripts, add ~/.claude/local to your PATH."
     else
         print_error "Claude Code CLI is not installed."
         echo ""
@@ -568,8 +585,41 @@ phase0_environment() {
     print_info "Checking MCP server configuration..."
 
     if [ -f ".mcp.json" ]; then
-        print_success ".mcp.json already exists."
-    else
+        # Check for stale or unexpected MCP servers
+        local has_stale=false
+        if command -v jq &>/dev/null; then
+            local server_names
+            server_names=$(jq -r '.mcpServers | keys[]' .mcp.json 2>/dev/null || true)
+            local required_servers="github memory sequential-thinking"
+            for server in $server_names; do
+                case "$server" in
+                    github|memory|sequential-thinking) ;;
+                    *)
+                        has_stale=true
+                        print_warning "Unexpected MCP server found: ${server}"
+                        ;;
+                esac
+            done
+        fi
+
+        if [ "$has_stale" = true ]; then
+            echo ""
+            echo "  Your .mcp.json contains MCP servers not required by Agile Flow."
+            echo "  These may be left over from a previous project or session."
+            echo ""
+            read -p "  Reset .mcp.json to required servers only? (y/N): " reset_mcp
+            if [[ "$reset_mcp" =~ ^[Yy]$ ]]; then
+                # Fall through to the creation block below
+                rm -f .mcp.json
+            else
+                print_info "Keeping existing .mcp.json."
+            fi
+        else
+            print_success ".mcp.json already exists with required servers."
+        fi
+    fi
+
+    if [ ! -f ".mcp.json" ]; then
         if [ -f ".claude/settings.template.json" ]; then
             print_warning ".mcp.json not found."
             echo ""
@@ -587,30 +637,34 @@ phase0_environment() {
             echo "    - memory (for agent context persistence)"
             echo "    - sequential-thinking (for structured reasoning)"
             echo ""
-            print_info "Creating a minimal .mcp.json placeholder..."
+            print_info "Creating .mcp.json with required MCP servers..."
 
-            cat > .mcp.json << 'MCPEOF'
+            # Use the full path to npx to avoid shell alias/PATH issues
+            local npx_path
+            npx_path=$(command -v npx 2>/dev/null || echo "npx")
+
+            cat > .mcp.json << MCPEOF
 {
   "mcpServers": {
     "github": {
-      "command": "npx",
+      "command": "${npx_path}",
       "args": ["-y", "@modelcontextprotocol/server-github"],
       "env": {
-        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}"
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "\${GITHUB_PERSONAL_ACCESS_TOKEN}"
       }
     },
     "memory": {
-      "command": "npx",
+      "command": "${npx_path}",
       "args": ["-y", "@modelcontextprotocol/server-memory"]
     },
     "sequential-thinking": {
-      "command": "npx",
+      "command": "${npx_path}",
       "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"]
     }
   }
 }
 MCPEOF
-            print_success "Created .mcp.json with default MCP servers."
+            print_success "Created .mcp.json with default MCP servers (npx: ${npx_path})."
             print_info "Edit .mcp.json to customize paths or add servers for your setup."
         else
             print_warning ".claude/settings.template.json not found — skipping .mcp.json creation."

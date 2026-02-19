@@ -21,9 +21,16 @@ Before you start, confirm:
 
 - Phase 0-3 of `./bootstrap.sh` completed (product, architecture, agents)
 - Three GitHub accounts ready (personal, `{org}-worker`, `{org}-reviewer`)
+- All three PATs have both `repo` AND `project` scope (the worker bot
+  needs `project` scope to move tickets between columns on the board)
+- `GITHUB_PERSONAL_ACCESS_TOKEN` environment variable set (for MCP servers)
 - Claude Code CLI installed and authenticated
+- Supabase account created with GitHub integration enabled
 - Render account created, service connected to your fork
 - Sentry project created with DSN added to Render environment variables
+
+> **Missing something?** See [PRE-WORK-CHECKLIST.md](PRE-WORK-CHECKLIST.md)
+> for detailed setup instructions.
 
 ---
 

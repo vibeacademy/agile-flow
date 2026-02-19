@@ -310,6 +310,11 @@ Run through this checklist to confirm everything is ready:
 - [ ] Render account created with GitHub connected
 - [ ] Git, Node.js, Python 3.11+, and uv installed
 - [ ] All tokens and passwords saved securely
+- [ ] Run `bash scripts/doctor.sh` (or `/doctor` in Claude Code) — all checks pass
+
+> **Note:** `agile-flow` is a **template repository**. During the workshop
+> you will use **"Use this template"** (not Fork) to create your own repo.
+> This gives you a clean repo with its own issues and project board.
 
 ---
 

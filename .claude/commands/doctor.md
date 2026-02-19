@@ -1,0 +1,69 @@
+# /doctor — Agile Flow Health Check
+
+Run a comprehensive diagnostic of the local environment and remote
+configuration. Surfaces every issue that could block a workshop participant.
+
+## Instructions
+
+1. Run the local diagnostic script and capture the full output:
+
+```bash
+bash scripts/doctor.sh
+```
+
+2. Parse the machine-readable summary block between `=== DOCTOR_SUMMARY ===`
+   and `=== END_SUMMARY ===`. Extract PASS, WARN, FAIL, and SKIP counts.
+
+3. Perform these **remote checks** that the shell script cannot do:
+
+   a. **Branch protection rulesets** — run:
+      ```
+      gh api repos/{owner}/{repo}/rulesets
+      ```
+      - PASS if at least one ruleset exists targeting `main`
+      - WARN if no rulesets found
+
+   b. **Repository secrets** — run:
+      ```
+      gh secret list
+      ```
+      Check for presence (not values) of:
+      - `RENDER_API_KEY` — WARN if missing
+      - `RENDER_SERVICE_ID` — WARN if missing
+      - `SUPABASE_ACCESS_TOKEN` — WARN if missing
+      - `SUPABASE_PROJECT_REF` — WARN if missing
+
+   c. **GitHub Project board** — run:
+      ```
+      gh project list --owner {owner} --format json
+      ```
+      - PASS if at least one project exists
+      - WARN if no projects found
+
+4. Format a **health report table** combining local + remote results:
+
+   ```
+   ## Agile Flow Health Report
+
+   ### Local Checks (from scripts/doctor.sh)
+   PASS: {n}  WARN: {n}  FAIL: {n}  SKIP: {n}
+
+   ### Remote Checks
+   | Check | Status | Details |
+   |-------|--------|---------|
+   | Branch protection | PASS/WARN | ... |
+   | Repo secrets | PASS/WARN | ... |
+   | Project board | PASS/WARN | ... |
+
+   ### Overall
+   Ready for workshop: **YES** / **NO**
+   ```
+
+5. If there are any FAILs or WARNs, list **actionable fix instructions**
+   for each one at the bottom of the report.
+
+## Important
+
+- This is a **read-only diagnostic**. Do not modify any files or settings.
+- Do not launch sub-agents. Run all checks inline.
+- Derive `{owner}` and `{repo}` from `git remote get-url origin`.

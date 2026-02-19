@@ -50,12 +50,96 @@ To switch platforms after initial setup:
 
 ### Render
 
-**Required secrets:**
+Render is the default deployment platform for this template. This section
+walks through the full setup from zero to production.
+
+#### Step 1: Push Your Code First
+
+Render needs code in your repository to build. Make sure you have at least
+one commit on `main` before creating the service:
+
+```bash
+git add -A
+git commit -m "Initialize project"
+git push -u origin main
+```
+
+#### Step 2: Create a Web Service
+
+For first-time users, **manual setup** is simpler than the Blueprint
+(Infrastructure as Code) approach.
+
+1. Go to <https://dashboard.render.com> and sign in.
+2. Click **New > Web Service**.
+3. Connect your GitHub repository.
+4. Configure:
+   - **Name**: your-project-name
+   - **Region**: closest to your users
+   - **Branch**: `main`
+   - **Build Command**: see `render.yaml` (e.g., `npm install && npm run build`)
+   - **Start Command**: see `render.yaml` (e.g., `npm start`)
+   - **Instance Type**: Free (for getting started)
+5. Click **Create Web Service**.
+
+#### Step 3: Environment Variables
+
+Add environment variables in Render Dashboard > your service > Environment:
+
+| Variable | When to Add | Where to Get It |
+|----------|-------------|-----------------|
+| `SENTRY_DSN` | After creating a Sentry project | Sentry > Project Settings > Client Keys |
+| `DATABASE_URL` | After linking a database | Render provides this automatically (see below) |
+| `NODE_ENV` | At creation | Set to `production` |
+
+**DATABASE_URL**: When you create a PostgreSQL database on Render and link
+it to your service, Render automatically injects `DATABASE_URL` as an
+environment variable. You do NOT need to copy/paste it manually.
+
+To create a database:
+1. Render Dashboard > **New > PostgreSQL**
+2. Choose a name and plan (Free tier available)
+3. Go to your Web Service > **Environment > Add Environment Group**
+4. Link the database — `DATABASE_URL` is injected automatically
+
+#### Step 4: GitHub Secrets for CI/CD
+
+The GitHub Actions workflows need two secrets to deploy and manage preview
+environments:
 
 | Secret | Where to Find |
 |--------|--------------|
 | `RENDER_API_KEY` | Render Dashboard > Account Settings > API Keys |
-| `RENDER_SERVICE_ID` | Render Dashboard > Service > Settings |
+| `RENDER_SERVICE_ID` | Render Dashboard > Your Service > Settings (in the URL: `https://dashboard.render.com/web/srv-xxxxx`, the `srv-xxxxx` part) |
+
+Add these in GitHub: Repository > Settings > Secrets and variables >
+Actions > New repository secret.
+
+#### Blueprint vs Manual Setup
+
+| | Blueprint (`render.yaml`) | Manual Setup |
+|---|---|---|
+| **How** | Render reads `render.yaml` from your repo | Configure via Render Dashboard UI |
+| **Best for** | Teams, reproducible infra | First-time setup, learning |
+| **Preview envs** | Automatic via `render.yaml` | Must configure manually |
+| **Database** | Declared in YAML | Created separately in Dashboard |
+
+The template ships a `render.yaml` file. Once you are comfortable, you can
+switch to Blueprint mode: Render Dashboard > Blueprints > New Blueprint
+Instance > connect your repo.
+
+#### Common Gotchas
+
+1. **First deploy fails**: Render cannot build if there is no code on the
+   branch. Push at least one commit to `main` before creating the service.
+2. **Free tier spin-down**: Free-tier services spin down after 15 minutes
+   of inactivity. The first request after spin-down takes 30-60 seconds.
+   This is normal.
+3. **Preview environments**: Preview deploys are triggered by the
+   `preview-deploy.yml` GitHub Action when a PR is opened. They require
+   `RENDER_API_KEY` to be set in GitHub Secrets.
+4. **Build cache**: If a build fails after changing stacks (e.g., Python
+   to Node.js), clear the build cache: Service > Settings > Clear Build
+   Cache, then trigger a manual deploy.
 
 **Configuration file:** `render.yaml`
 

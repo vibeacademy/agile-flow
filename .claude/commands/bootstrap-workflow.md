@@ -13,6 +13,14 @@ Set up GitHub project board, branch protection, and create initial backlog from 
 
 This is the final bootstrap phase. It activates the full agent workflow.
 
+## Ticket Format Requirement
+
+Before creating any issues, read `docs/TICKET-FORMAT.md` in full. Every issue
+created in this phase — epics and features alike — MUST follow the Agentic PRD
+Lite format. Tickets without the 4 Power Sections (A. Environment Context,
+B. Guardrails, C. Happy Path, D. Definition of Done) will not pass grooming
+and will have to be rewritten.
+
 ## What This Phase Does
 
 ### 1. GitHub Project Board Setup
@@ -34,11 +42,16 @@ Verify or configure branch protection on `main`:
 
 ### 3. Initial Backlog Creation
 
-Convert PRD features into GitHub issues:
-- Create epics for major feature areas
-- Create issues for MVP features
+Convert PRD features into GitHub issues following `docs/TICKET-FORMAT.md`:
+- Create epics for major feature areas (epics use Problem Statement + high-level scope)
+- Create feature issues with ALL required fields:
+  - Problem Statement, Parent Epic, Effort Estimate, Priority
+  - A. Environment Context (from `docs/TECHNICAL-ARCHITECTURE.md`)
+  - B. Guardrails (from `docs/AGENTIC-CONTROLS.md` + PRD constraints)
+  - C. Happy Path (numbered steps: Input → Logic → Output)
+  - D. Definition of Done (specific test assertions, lint commands, reviewer checks)
 - Link issues to epics
-- Add initial priority labels
+- Add priority labels (P0/P1/P2/P3)
 
 ### 4. Ready Column Population
 
@@ -63,6 +76,23 @@ Before running this phase, ensure you have:
 - [ ] GitHub personal access token with repo and project permissions
 - [ ] Permission to create project boards
 - [ ] Permission to configure branch protection
+
+## Pre-Flight Verification (REQUIRED)
+
+Before any board or ticket operations, verify the following. STOP and report
+to the user if any check fails — do not continue with partial tooling.
+
+1. **MCP GitHub server is reachable** — Attempt a GitHub MCP tool call (e.g.,
+   list repos). If the MCP server is not connected, STOP. Do not fall back to
+   CLI-only mode silently.
+2. **GitHub account is correct** — Run `gh auth status` and confirm the active
+   account matches the expected worker/bot account. If only a personal account
+   is active, STOP and instruct the user to run `scripts/ensure-github-account.sh`.
+3. **Claude hooks are registered** — Check that hook files referenced in
+   `.claude/settings.local.json` exist and are executable. WARN if any hook is
+   missing or not executable.
+4. **Project board is accessible** — Attempt to read the project board. If
+   access is denied or the board does not exist, STOP and report.
 
 ## Configuration Required
 
@@ -93,10 +123,14 @@ The workflow activation agent will:
    - Verify configuration
 
 4. **Generate Backlog**
-   - Read PRD features
-   - Create epic issues
-   - Create feature issues
-   - Set initial priorities
+   - Read `docs/TICKET-FORMAT.md` for the canonical ticket format
+   - Read PRD features from `docs/PRODUCT-REQUIREMENTS.md`
+   - Read `docs/TECHNICAL-ARCHITECTURE.md` for Environment Context content
+   - Read `docs/AGENTIC-CONTROLS.md` for Guardrails content
+   - Create epic issues (Problem Statement + scope description)
+   - Create feature issues with all 4 Power Sections populated
+   - Set initial priorities (P0-P3)
+   - Self-check: before creating each issue, verify it contains sections A through D
 
 5. **Populate Ready Column**
    - Select MVP tickets
@@ -109,26 +143,61 @@ The workflow activation agent will:
 
 ## Example Backlog Generation
 
-From PRD features like:
+> Every issue MUST follow `docs/TICKET-FORMAT.md`. The example below shows the
+> expected structure. Do NOT create bare-title issues without Power Sections.
+
+From a PRD feature like:
 ```markdown
 ### MVP Features
 - User authentication (email/password)
-- User profile management
-- Core dashboard
 ```
 
-Creates issues like:
+Create an epic:
 ```
 Epic: User Authentication
-  - Issue: Implement email/password signup
-  - Issue: Implement login flow
-  - Issue: Implement password reset
-  - Issue: Add session management
 
-Epic: User Profile
-  - Issue: Create profile page
-  - Issue: Implement profile editing
-  - Issue: Add avatar upload
+Problem Statement:
+The application has no way to identify users. All routes are public.
+We need email/password authentication to gate access to user-specific data.
+
+Scope: signup, login, password reset, session management.
+Priority: P0
+```
+
+Then create feature issues with full Power Sections:
+```
+TICKET: Implement email/password signup
+
+Problem Statement:
+New users cannot create accounts. We need a signup endpoint that accepts
+email + password, validates input, and creates a user record.
+
+Parent Epic: #<epic-number>
+Effort Estimate: M
+Priority: P0
+
+--- A. Environment Context ---
+- Stack: (from TECHNICAL-ARCHITECTURE.md)
+- Existing pattern: (reference a similar route in the codebase)
+- Files to create/modify: (list explicitly)
+
+--- B. Guardrails ---
+- (from AGENTIC-CONTROLS.md + PRD constraints)
+- Do NOT store plaintext passwords
+- Do NOT modify existing auth middleware
+
+--- C. Happy Path ---
+1. Client sends POST /auth/signup with {email, password}
+2. Server validates email format and password strength
+3. Server hashes password, creates user record
+4. Server returns 201 with {id, email}
+
+--- D. Definition of Done ---
+- Test asserts POST /auth/signup with valid data returns 201
+- Test asserts duplicate email returns 409
+- Test asserts weak password returns 422
+- Lint and type checks pass with zero errors
+- PR reviewer can run the signup flow manually
 ```
 
 ## What Gets Unlocked

@@ -6,6 +6,23 @@ Launch the github-ticket-worker agent to implement the next prioritized ticket.
 
 > **Reference**: See `docs/TICKET-FORMAT.md` for the expected ticket format.
 
+## Pre-Flight Verification (REQUIRED)
+
+Before starting work on any ticket, verify the following. STOP and report to
+the user if any check fails — do not continue with partial tooling.
+
+1. **MCP GitHub server is reachable** — Attempt a GitHub MCP tool call (e.g.,
+   list repos). If the MCP server is not connected, STOP. Do not fall back to
+   CLI-only mode silently.
+2. **GitHub account is correct** — Run `gh auth status` and confirm the active
+   account matches the expected worker/bot account. If only a personal account
+   is active, STOP and instruct the user to run `scripts/ensure-github-account.sh`.
+3. **Claude hooks are registered** — Check that hook files referenced in
+   `.claude/settings.local.json` exist and are executable. WARN if any hook is
+   missing or not executable.
+4. **Project board is accessible** — Attempt to read the project board. If
+   access is denied or the board does not exist, STOP and report.
+
 ## Critical Rules
 
 1. **Branch from main**: `feature/issue-{number}-short-description`
@@ -22,10 +39,14 @@ Launch the github-ticket-worker agent to implement the next prioritized ticket.
 2. **Validate Ticket Format** — Check the ticket body for the 4 Power Sections:
    - **A. Environment Context**, **B. Guardrails**, **C. Happy Path**, **D. Definition of Done**
    - If any section is missing or empty:
-     1. Read `docs/TECHNICAL-ARCHITECTURE.md`, `docs/PRODUCT-REQUIREMENTS.md`, and the parent epic
-     2. Fill in the missing sections (best-effort)
-     3. Update the GitHub issue with the fleshed-out version
-     4. Present the completed spec to the user for confirmation before coding
+     1. **STOP** and report to the user exactly which sections are missing —
+        make the upstream formatting failure visible as a process problem
+     2. Read `docs/TICKET-FORMAT.md`, `docs/TECHNICAL-ARCHITECTURE.md`,
+        `docs/AGENTIC-CONTROLS.md`, and the parent epic
+     3. Draft the missing sections following `docs/TICKET-FORMAT.md` exactly
+     4. Present the draft to the user with a clear diff showing what was added —
+        **do not proceed until the user explicitly approves**
+     5. Update the GitHub issue with the user-approved version
    - If all 4 sections are present → proceed normally (no delay)
 3. **Setup** — Create branch, move to In Progress
 4. **Implement** — Follow CLAUDE.md standards, write clean code, follow existing patterns

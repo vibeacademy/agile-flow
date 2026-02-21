@@ -4,6 +4,20 @@ description: Create a well-structured ticket that meets Definition of Ready
 
 Create a new ticket on the project board with guided workflow.
 
+## Pre-Flight Verification (REQUIRED)
+
+Before creating any ticket, verify the following. STOP and report to the user
+if any check fails — do not continue with partial tooling.
+
+1. **MCP GitHub server is reachable** — Attempt a GitHub MCP tool call (e.g.,
+   list repos). If the MCP server is not connected, STOP. Do not fall back to
+   CLI-only mode silently.
+2. **GitHub account is correct** — Run `gh auth status` and confirm the active
+   account matches the expected worker/bot account. If only a personal account
+   is active, STOP and instruct the user to run `scripts/ensure-github-account.sh`.
+3. **Project board is accessible** — Attempt to read the project board. If
+   access is denied or the board does not exist, STOP and report.
+
 ## Critical Rules
 
 1. **Every ticket must meet Definition of Ready** before being added to the board
@@ -22,39 +36,33 @@ Create a new ticket on the project board with guided workflow.
 7. **Create** — Create the GitHub issue and add it to the project board
 8. **Categorize** — Set priority, size estimate, and move to Backlog
 
-## Ticket Template
+## Ticket Format
 
-```markdown
-## Problem
-[What problem does this solve? Why does it matter? 2-3 sentences max.]
+**Do not use an inline template.** Read `docs/TICKET-FORMAT.md` before drafting
+any ticket — it is the single source of truth and contains the full specification
+with examples.
 
-## A. Environment Context
-[Tech stack, integration points, existing patterns to follow, files to modify.
-Populate from TECHNICAL-ARCHITECTURE.md and existing codebase.]
+Every ticket MUST include these 5 components:
 
-## B. Guardrails
-[Explicit constraints: security rules, performance targets, what NOT to do.
-Populate from AGENTIC-CONTROLS.md and PRD non-functional requirements.]
+1. **Standard Fields** — Problem Statement, Parent Epic, Effort Estimate, Priority
+2. **A. Environment Context** — Populate from `docs/TECHNICAL-ARCHITECTURE.md`
+   and the existing codebase (stack, integration points, files to modify)
+3. **B. Guardrails** — Populate from `docs/AGENTIC-CONTROLS.md` and PRD
+   non-functional requirements (security rules, performance targets, prohibitions)
+4. **C. Happy Path** — Numbered steps: Input → Logic → Output. One flow per ticket.
+5. **D. Definition of Done** — Specific test assertions, lint/type commands,
+   reviewer-verifiable outcomes. Not vague.
 
-## C. Happy Path
-[Step-by-step Input → Logic → Output flow. One clear flow per ticket.]
+### Self-Check Before Presenting Draft
 
-## D. Definition of Done
-[Concrete proof of completion: specific tests, assertions, endpoints to verify.
-Not vague — the PR reviewer must be able to check each item.]
-
-## Acceptance Criteria
-- [ ] [Specific, testable criterion]
-- [ ] [Another criterion]
-
-## Parent Epic
-#[epic-number] (if applicable)
-
-## Effort Estimate
-[XS (<30 min) | S (1-2 hours) | M (2-4 hours) | L (4-8 hours) | XL (1+ days)]
-```
-
-See `docs/TICKET-FORMAT.md` for the canonical format specification and examples.
+Before showing the draft to the user, verify:
+- [ ] Problem Statement is 2-3 sentences, not a paragraph
+- [ ] Sections A-D are all present and non-empty
+- [ ] Environment Context references specific files, not generic descriptions
+- [ ] Guardrails include at least one explicit prohibition
+- [ ] Happy Path has numbered steps with data shapes
+- [ ] Definition of Done has concrete assertions (not "tests pass")
+- [ ] Effort estimate is provided; if XL, suggest decomposition
 
 ## Usage
 

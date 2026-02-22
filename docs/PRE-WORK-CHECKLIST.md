@@ -1,38 +1,68 @@
 # Pre-Work Checklist
 
-Complete these steps **before** the workshop starts. Each step includes
-what you need, how to do it, and what success looks like. Budget about
-60-90 minutes total.
+Complete these steps **before** the workshop starts. Budget about
+60–90 minutes total.
+
+Items are split into **Required** (blocks Day 1) and **Optional**
+(enhances but does not block). Do the Required section first.
 
 ---
 
-## 1. GitHub Organization
+# Required
 
-You need a GitHub organization to host your project. Free orgs work fine.
+## 1. Claude Subscription
+
+You need a Claude Pro, Max, or Team plan to access the Code tab in
+Claude Desktop.
 
 **Steps:**
+
+1. Go to <https://claude.ai>
+2. Subscribe to a **Pro**, **Max**, or **Team** plan if you have not already
+
+**You should see:** The Code tab available when you open Claude Desktop.
+
+---
+
+## 2. Claude Desktop App
+
+Claude Code Desktop is the primary interface for the workshop. It runs
+Claude Code inside the desktop app — no terminal required.
+
+**Steps:**
+
+1. Download Claude Desktop from <https://claude.ai/download>
+2. Install and open it
+3. Verify the **Code** tab appears in the sidebar
+
+**You should see:** The Claude Desktop app with a Code tab you can click
+into.
+
+> **Note:** Claude Code Desktop spawns its own shell process. It does
+> NOT bundle Git, Node.js, or `gh` — you must install those separately
+> (Step 4 below).
+
+---
+
+## 3. Three GitHub Accounts + Organization
+
+The Agile Flow workflow uses three GitHub accounts to enforce separation
+of duties: you (the human), a worker bot, and a reviewer bot.
+
+### 3a. Create a GitHub Organization
 
 1. Go to <https://github.com/organizations/plan>
 2. Choose **Free**
 3. Name it something short (e.g., `yourname-workshop`)
 4. Skip inviting members for now
 
-**You should see:** Your org page at `https://github.com/yourname-workshop`.
-
----
-
-## 2. Three GitHub Accounts
-
-The Agile Flow workflow uses three GitHub accounts to enforce separation of
-duties: you (the human), a worker bot, and a reviewer bot.
+### 3b. Create Two Bot Accounts
 
 | Account | Purpose | Naming Convention |
 |---------|---------|-------------------|
 | Your personal account | Final review, merge, project management | (your existing account) |
 | Worker bot | Creates branches, writes code, opens PRs | `{org}-worker` |
 | Reviewer bot | Reviews PRs, posts GO/NO-GO recommendations | `{org}-reviewer` |
-
-**Steps:**
 
 1. Create two new GitHub accounts using different email addresses:
    - `{org}-worker` (e.g., `myproject-worker`)
@@ -41,27 +71,14 @@ duties: you (the human), a worker bot, and a reviewer bot.
    - Go to `https://github.com/orgs/{your-org}/people`
    - Click **Invite member** for each
 
-**You should see:** Three accounts listed in your org's People page.
+> **Tip:** Use email aliases (e.g., `you+worker@gmail.com`) to create
+> the bot accounts without needing separate email addresses.
 
-> **Tip:** Use email aliases (e.g., `you+worker@gmail.com`) to create the
-> bot accounts without needing separate email addresses.
+### 3c. Create Three Personal Access Tokens (PATs)
 
----
+Each account needs its own **fine-grained** token (not classic).
 
-## 3. Three Personal Access Tokens (PATs)
-
-Each account needs its own token. Create **fine-grained** tokens (not
-classic) for better security.
-
-### 3a. Personal account PAT
-
-1. Log in as your personal account
-2. Go to **Settings > Developer settings > Personal access tokens > Fine-grained tokens**
-3. Click **Generate new token**
-4. Token name: `agile-flow-workshop`
-5. Resource owner: Select your organization
-6. Repository access: **All repositories** (or select your repository later)
-7. Permissions:
+**Personal account + Worker bot permissions:**
 
 | Permission | Access |
 |-----------|--------|
@@ -71,25 +88,7 @@ classic) for better security.
 | Projects | Read and write |
 | Metadata | Read only |
 
-1. Click **Generate token** and save it somewhere safe
-
-### 3b. Worker bot PAT
-
-1. Log in as `{org}-worker`
-2. Same steps as above, with these permissions:
-
-| Permission | Access |
-|-----------|--------|
-| Contents | Read and write |
-| Issues | Read and write |
-| Pull requests | Read and write |
-| Projects | Read and write |
-| Metadata | Read only |
-
-### 3c. Reviewer bot PAT
-
-1. Log in as `{org}-reviewer`
-2. Same steps as above, with these permissions:
+**Reviewer bot permissions (narrower):**
 
 | Permission | Access |
 |-----------|--------|
@@ -99,42 +98,80 @@ classic) for better security.
 | Projects | Read only |
 | Metadata | Read only |
 
-**You should see:** Three tokens saved. You will need all three during
-setup.
+For each account:
+
+1. Log in as that account
+2. Go to **Settings > Developer settings > Personal access tokens > Fine-grained tokens**
+3. Click **Generate new token**
+4. Token name: `agile-flow-workshop`
+5. Resource owner: Select your organization
+6. Repository access: **All repositories**
+7. Set the permissions from the table above
+8. Click **Generate token** and save it somewhere safe
+
+**You should see:** Three tokens saved securely. You will need all three
+in Step 5.
 
 > **Keep these safe.** Store them in a password manager or a local file
 > that you will delete after setup. Never commit tokens to a repository.
 
 ---
 
-## 4. GitHub CLI (`gh`)
+## 4. System Tools
 
-The workshop uses the GitHub CLI extensively. Install it and log in all
-three accounts.
+Claude Code Desktop does **not** bundle these tools — you must install
+them yourself.
+
+| Tool | Install | Verify |
+|------|---------|--------|
+| Git | <https://git-scm.com/downloads> | `git --version` |
+| Node.js 18+ | <https://nodejs.org> | `node --version` |
+| GitHub CLI (`gh`) | <https://cli.github.com> | `gh --version` |
+
+On macOS with Homebrew:
+
+```bash
+brew install git node gh
+```
+
+After installing, verify all three:
+
+```bash
+git --version && node --version && gh --version
+```
+
+> **Why Node.js?** MCP servers (used by Claude Desktop) are launched via
+> `npx`, which requires Node.js to be installed.
+
+---
+
+## 5. GitHub CLI Multi-Account Login
+
+You need all three GitHub accounts authenticated in `gh` so the Agile
+Flow agents can switch between them.
 
 **Steps:**
 
-1. Install the GitHub CLI: <https://cli.github.com>
-2. Log in your personal account first:
+1. Log in your personal account first:
 
 ```bash
 gh auth login
-# Choose: GitHub.com > HTTPS > Paste your PAT
+# Choose: GitHub.com > HTTPS > Paste your personal PAT
 ```
 
-1. Log in the worker bot:
+2. Log in the worker bot:
 
 ```bash
 echo "YOUR_WORKER_PAT" | gh auth login --with-token
 ```
 
-1. Log in the reviewer bot:
+3. Log in the reviewer bot:
 
 ```bash
 echo "YOUR_REVIEWER_PAT" | gh auth login --with-token
 ```
 
-1. Verify all three accounts:
+4. Verify all three accounts:
 
 ```bash
 gh auth status
@@ -143,51 +180,120 @@ gh auth status
 **You should see:** Three accounts listed, with your personal account
 marked as active.
 
-1. Set the environment variables (add to `~/.zshrc` or `~/.bashrc`):
+5. Set environment variables — add to your **`~/.zshrc`** (macOS) or
+   `~/.bashrc` (Linux):
 
 ```bash
+export GITHUB_PERSONAL_ACCESS_TOKEN="ghp_your_personal_pat_here"
 export AGILE_FLOW_WORKER_ACCOUNT="{org}-worker"
 export AGILE_FLOW_REVIEWER_ACCOUNT="{org}-reviewer"
 ```
 
-Then reload your shell:
+Then reload:
 
 ```bash
 source ~/.zshrc  # or source ~/.bashrc
 ```
 
-> **Quick setup**: If you already have all three PATs, run
-> `bash scripts/setup-accounts.sh` to configure all accounts in one step.
+> **Quick setup:** If you have all three PATs ready, run
+> `bash scripts/setup-accounts.sh` to configure everything in one step.
 
 ---
 
-## 5. Claude Code CLI
+## 6. Shell Environment for Claude Desktop
 
-Claude Code is the AI assistant that powers the Agile Flow agents.
+**This is the most common setup pitfall.** Claude Code Desktop spawns a
+shell that reads your shell profile file. If your env vars or PATH
+changes live somewhere else, Desktop will not see them.
 
-**Steps:**
+### Where to put env vars
 
-1. Install Claude Code: <https://claude.ai/code>
-2. Authenticate:
+| OS | File to edit |
+|----|-------------|
+| macOS | `~/.zshrc` |
+| Linux | `~/.bashrc` |
+
+**Do NOT put them in:** iTerm preferences, `.bash_profile` (macOS only
+sources `.zshrc` for zsh), terminal-app-specific config, or GUI
+environment editors.
+
+### Required env vars
+
+Make sure these lines are in your `~/.zshrc` (or `~/.bashrc`):
 
 ```bash
-claude auth login
+export GITHUB_PERSONAL_ACCESS_TOKEN="ghp_your_personal_pat_here"
+export AGILE_FLOW_WORKER_ACCOUNT="{org}-worker"
+export AGILE_FLOW_REVIEWER_ACCOUNT="{org}-reviewer"
 ```
 
-1. Verify:
+### Required PATH entries
+
+If you installed tools via Homebrew, nvm, or another version manager,
+make sure the relevant PATH line is in `~/.zshrc`, for example:
 
 ```bash
-claude --version
+# Homebrew (Apple Silicon)
+eval "$(/opt/homebrew/bin/brew shellenv)"
+
+# or Homebrew (Intel Mac)
+eval "$(/usr/local/bin/brew shellenv)"
 ```
 
-**You should see:** A version number (e.g., `1.x.x`).
+### Restart Claude Desktop
+
+After editing your shell profile, **quit and relaunch Claude Desktop**.
+Reloading the shell in a terminal is not enough — Desktop must restart
+to pick up the changes.
+
+### Verify from inside Desktop
+
+Open the Code tab in Claude Desktop and ask Claude to run:
+
+```
+echo $GITHUB_PERSONAL_ACCESS_TOKEN
+```
+
+If it prints your token, the environment is set up correctly. If it
+prints a blank line, your env vars are not in the right file — re-check
+the steps above.
 
 ---
 
-## 6. Supabase Account
+## 7. Required Verification Checklist
+
+Run through this before the workshop:
+
+- [ ] Claude Pro/Max/Team subscription active
+- [ ] Claude Desktop installed, Code tab visible
+- [ ] GitHub organization created
+- [ ] Worker bot account created and invited to org
+- [ ] Reviewer bot account created and invited to org
+- [ ] Personal PAT generated with correct permissions
+- [ ] Worker bot PAT generated
+- [ ] Reviewer bot PAT generated
+- [ ] `gh auth status` shows all three accounts
+- [ ] `GITHUB_PERSONAL_ACCESS_TOKEN` env var set in `~/.zshrc`
+- [ ] `AGILE_FLOW_WORKER_ACCOUNT` env var set in `~/.zshrc`
+- [ ] `AGILE_FLOW_REVIEWER_ACCOUNT` env var set in `~/.zshrc`
+- [ ] Git, Node.js 18+, and `gh` CLI installed
+- [ ] Claude Desktop can see env vars (verified from Code tab)
+- [ ] All tokens and passwords saved securely
+
+---
+
+# Optional
+
+These enhance the workshop experience but are **not required** before
+Day 1. You can set them up during the workshop.
+
+## 8. Supabase Account
 
 Supabase provides the database with ephemeral per-PR branches — each
 pull request gets its own isolated database.
+
+> **You can do this during the workshop.** If you want a head start,
+> complete the steps below.
 
 **Steps:**
 
@@ -197,12 +303,9 @@ pull request gets its own isolated database.
    - Project name: `agile-flow-workshop` (or your project name)
    - Database password: Generate a strong password and **save it**
    - Region: Choose the closest to you
-3. Wait for the project to finish provisioning (1-2 minutes)
+3. Wait for the project to finish provisioning (1–2 minutes)
 
-**You should see:** Your Supabase project dashboard with the project URL
-and API keys visible.
-
-### 6a. Generate an access token
+### Generate an access token
 
 1. Click your avatar (top right) > **Account preferences**
 2. Go to **Access Tokens**
@@ -210,31 +313,24 @@ and API keys visible.
 4. Name: `agile-flow-workshop`
 5. Copy and save the token
 
-### 6b. Note your project reference ID
+### Note your project reference ID
 
 1. Go to **Project Settings** (gear icon in sidebar) > **General**
-2. Copy the **Reference ID** (a short alphanumeric string like `abcdefghijkl`)
+2. Copy the **Reference ID** (a short alphanumeric string like
+   `abcdefghijkl`)
 
-### 6c. Enable GitHub integration (for branch databases)
-
-1. Go to **Project Settings > Integrations > GitHub**
-2. Click **Connect GitHub**
-3. Authorize Supabase for your organization
-4. Select your repository
-5. Enable **Branch previews**
-
-**You should see:** GitHub listed as connected in the Integrations page.
-
-> **Note:** The GitHub integration creates a Supabase branch database
-> automatically whenever a PR is opened. This gives each PR its own
-> isolated Postgres instance.
+**You should see:** Your Supabase project dashboard with the project URL
+and API keys visible.
 
 ---
 
-## 7. Render Account
+## 9. Render Account
 
-Render hosts your application and provides automatic preview environments
-for every PR.
+Render hosts your application and provides automatic preview
+environments for every PR.
+
+> **You can do this during the workshop.** If you want a head start,
+> create the account now.
 
 **Steps:**
 
@@ -248,80 +344,17 @@ for every PR.
 
 ---
 
-## 8. Add Secrets to Your Repository
-
-After creating your repository from the Agile Flow template during the
-workshop, you will need to add these secrets. You can prepare the values
-now so you are ready to paste them in.
-
-Go to your repository > **Settings > Secrets and variables > Actions > New
-repository secret** and add:
-
-### Required for Supabase (database)
-
-| Secret Name | Value |
-|-------------|-------|
-| `SUPABASE_ACCESS_TOKEN` | The access token from Step 6a |
-| `SUPABASE_PROJECT_REF` | The reference ID from Step 6b |
-
-### Required for Render (hosting) — add during workshop
-
-| Secret Name | Value |
-|-------------|-------|
-| `RENDER_API_KEY` | Render Dashboard > Account Settings > API Keys |
-| `RENDER_SERVICE_ID` | Render Dashboard > Your Service > Settings (starts with `srv-`) |
-
-### Optional (production database migrations)
-
-| Secret Name | Value |
-|-------------|-------|
-| `SUPABASE_DB_URL` | Supabase Dashboard > Project Settings > Database > Connection string |
-
----
-
-## 9. Development Tools
-
-Make sure these are installed on your machine:
-
-| Tool | Install | Verify |
-|------|---------|--------|
-| Git | <https://git-scm.com/downloads> | `git --version` |
-| Node.js 18+ | <https://nodejs.org> | `node --version` |
-| Python 3.11+ | <https://python.org> or `brew install python` | `python3 --version` |
-| uv (Python package manager) | `curl -LsSf https://astral.sh/uv/install.sh \| sh` | `uv --version` |
-
----
-
-## Pre-Work Verification Checklist
-
-Run through this checklist to confirm everything is ready:
-
-- [ ] GitHub organization created
-- [ ] Worker bot account created and invited to org
-- [ ] Reviewer bot account created and invited to org
-- [ ] Personal PAT generated with repo + project permissions
-- [ ] Worker bot PAT generated
-- [ ] Reviewer bot PAT generated
-- [ ] `gh auth status` shows all three accounts
-- [ ] `AGILE_FLOW_WORKER_ACCOUNT` env var set
-- [ ] `AGILE_FLOW_REVIEWER_ACCOUNT` env var set
-- [ ] Claude Code CLI installed and authenticated
-- [ ] Supabase account created with a project
-- [ ] Supabase access token generated
-- [ ] Supabase project reference ID noted
-- [ ] Supabase GitHub integration enabled for your org
-- [ ] Render account created with GitHub connected
-- [ ] Git, Node.js, Python 3.11+, and uv installed
-- [ ] All tokens and passwords saved securely
-- [ ] Run `bash scripts/doctor.sh` (or `/doctor` in Claude Code) — all checks pass
-
-> **Note:** `agile-flow` is a **template repository**. During the workshop
-> you will use **"Use this template"** (not Fork) to create your own repo.
-> This gives you a clean repo with its own issues and project board.
-
----
-
 ## Troubleshooting
+
+### Claude Desktop does not show the Code tab
+
+Make sure you have a Pro, Max, or Team plan. Free plans do not include
+the Code tab.
+
+### Environment variables are blank inside Desktop
+
+Your env vars are not in `~/.zshrc` (macOS) or `~/.bashrc` (Linux).
+Move them there and **restart Claude Desktop** (not just the terminal).
 
 ### "Permission denied" when pushing
 
@@ -333,11 +366,6 @@ token may have expired. Generate a new one.
 Check the bot account's email for the org invitation, or go to
 `https://github.com/orgs/{your-org}/people` and resend the invitation.
 
-### Supabase project still provisioning
-
-New projects take 1-2 minutes. Refresh the page. If it takes longer than
-5 minutes, try creating the project in a different region.
-
 ### `gh auth login` fails with token
 
 Make sure you are pasting the full token with no extra whitespace. Try:
@@ -346,12 +374,17 @@ Make sure you are pasting the full token with no extra whitespace. Try:
 echo "ghp_your_token_here" | gh auth login --with-token --hostname github.com
 ```
 
+### `npx` command not found
+
+Node.js is not installed or not in your PATH. Install Node.js 18+ and
+make sure the install location is in your PATH in `~/.zshrc`.
+
 ---
 
 ## What to Bring to the Workshop
 
-- Your laptop with all tools installed (see checklist above)
+- Your laptop with all required tools installed (see checklist above)
 - All three PATs accessible (password manager or secure note)
-- Your Supabase access token and project reference ID
+- Claude Desktop installed and working
 - A charger
 - A project idea (optional — the workshop provides a starter project)

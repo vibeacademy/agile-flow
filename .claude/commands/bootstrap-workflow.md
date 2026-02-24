@@ -73,7 +73,7 @@ Update CLAUDE.md with:
 Before running this phase, ensure you have:
 
 - [ ] GitHub repository created
-- [ ] GitHub personal access token with repo and project permissions
+- [ ] GitHub personal access token with repo, project, and workflow permissions
 - [ ] Permission to create project boards
 - [ ] Permission to configure branch protection
 
@@ -251,7 +251,7 @@ Your project is now ready for development!
 ## Troubleshooting
 
 **"GitHub token not authorized"**
-- Ensure token has `repo` and `project` scopes
+- Ensure token has `repo`, `project`, and `workflow` scopes
 - Check token isn't expired
 
 **"Cannot create project board"**

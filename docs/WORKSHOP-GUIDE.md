@@ -14,7 +14,7 @@ steps.
 ### Per Participant (Required)
 
 - [ ] GitHub organization created
-- [ ] GitHub account with personal access token (fine-grained, repo + project scope)
+- [ ] GitHub account with personal access token (classic: repo + project + workflow scope)
 - [ ] Worker bot account (`{org}-worker`) with PAT, invited to org
 - [ ] Reviewer bot account (`{org}-reviewer`) with PAT, invited to org
 - [ ] Claude Code CLI installed and authenticated
@@ -62,12 +62,16 @@ duties in the agent workflow.
 
 ### PAT Generation
 
-For each bot account, create a fine-grained personal access token:
+For each bot account, create a classic personal access token:
 
-1. Go to **Settings > Developer settings > Personal access tokens > Fine-grained**
+1. Go to **Settings > Developer settings > Personal access tokens > Tokens (classic)**
 2. Token name: `agile-flow-workshop`
-3. Repository access: Select the participant's repository
-4. Permissions:
+3. Select scopes: `repo`, `project`, `workflow`, `read:org`, `gist`
+
+> The `workflow` scope is required by GitHub for any token that pushes
+> changes to `.github/workflows/` files.
+
+If you prefer fine-grained tokens, enable these permissions:
 
 | Permission | Worker Bot | Reviewer Bot |
 |-----------|-----------|-------------|
@@ -75,6 +79,7 @@ For each bot account, create a fine-grained personal access token:
 | Issues | Read and write | Read only |
 | Pull requests | Read and write | Read and write |
 | Projects | Read and write | Read only |
+| Workflows | Read and write | Read and write |
 | Metadata | Read only | Read only |
 
 ### Configuring Account Switching
@@ -281,7 +286,7 @@ Participant is stuck
   |
   +--> Board not updating?
   |      --> Check: correct project board URL in commands
-  |      --> Check: PAT has project scope
+  |      --> Check: PAT has project + workflow scopes
   |      --> Try: gh project item-list <project-number>
   |
   +--> Deploy not working?

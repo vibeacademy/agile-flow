@@ -23,7 +23,7 @@ Before you start, confirm:
 - Three GitHub accounts ready (personal, `{org}-worker`, `{org}-reviewer`)
 - Claude Code CLI installed and authenticated
 - MCP servers working — run `claude` and verify `github` and `memory` servers connect
-- `GITHUB_PERSONAL_ACCESS_TOKEN` exported with `repo` + `project` scopes
+- `GITHUB_PERSONAL_ACCESS_TOKEN` exported with `repo` + `project` + `workflow` scopes
 - Render account created, service connected to your repo
 - Run `/doctor` in Claude Code (or `bash scripts/doctor.sh`) to verify your setup
 
@@ -134,10 +134,10 @@ gh auth login --with-token < reviewer-token.txt
 ```
 
 > **PAT scopes**: Each bot account's PAT needs **`repo`** + **`project`**
-> scopes (classic PAT) so the agent can manage issues, PRs, and move
-> tickets on the project board. If you used fine-grained PATs, enable
-> `Contents`, `Issues`, `Pull requests`, `Metadata` (read), and
-> `Projects` permissions.
+> + **`workflow`** scopes (classic PAT) so the agent can manage issues,
+> PRs, move tickets on the project board, and push workflow file changes.
+> If you used fine-grained PATs, enable `Contents`, `Issues`, `Pull
+> requests`, `Metadata` (read), `Projects`, and `Workflows` permissions.
 
 Verify the environment variables are set:
 

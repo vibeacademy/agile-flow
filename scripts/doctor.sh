@@ -351,7 +351,28 @@ if [ -n "${GITHUB_PERSONAL_ACCESS_TOKEN:-}" ]; then
     fi
     pass "MCP Config" "GITHUB_PERSONAL_ACCESS_TOKEN set ($token_preview)"
 else
-    fail "MCP Config" "GITHUB_PERSONAL_ACCESS_TOKEN not set" "export GITHUB_PERSONAL_ACCESS_TOKEN=ghp_... (needs repo + project scopes)"
+    fail "MCP Config" "GITHUB_PERSONAL_ACCESS_TOKEN not set" "export GITHUB_PERSONAL_ACCESS_TOKEN=ghp_... (needs repo + project + workflow scopes)"
+fi
+
+# Token scope validation (WARN per missing scope)
+if [ -n "${GITHUB_PERSONAL_ACCESS_TOKEN:-}" ] && GH_CMD=$(resolve_cmd gh); then
+    # gh api returns X-OAuth-Scopes in stderr via -i; extract from response headers
+    token_scopes=$(GH_TOKEN="$GITHUB_PERSONAL_ACCESS_TOKEN" "$GH_CMD" api -i user 2>/dev/null \
+        | grep -i '^x-oauth-scopes:' \
+        | sed 's/^[^:]*: //' \
+        | tr -d '\r')
+
+    if [ -n "$token_scopes" ]; then
+        for required_scope in repo project workflow; do
+            if echo "$token_scopes" | grep -qw "$required_scope"; then
+                pass "MCP Config" "Token has '$required_scope' scope"
+            else
+                warn "MCP Config" "Token missing '$required_scope' scope" "Add '$required_scope' at GitHub > Settings > Developer Settings > PAT"
+            fi
+        done
+    else
+        skip "MCP Config" "Token scope validation" "Could not read scopes from GitHub API (token may be fine-grained)"
+    fi
 fi
 
 # ═══════════════════════════════════════════════════════════════════

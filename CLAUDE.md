@@ -77,13 +77,14 @@ wizard creates this file automatically.
 
 | Server | Required | Token | Scopes |
 |--------|----------|-------|--------|
-| `github` | Yes | `GITHUB_PERSONAL_ACCESS_TOKEN` | `repo` + `project` |
+| `github` | Yes | `GITHUB_PERSONAL_ACCESS_TOKEN` | `repo` + `project` + `workflow` |
 | `memory` | Yes | none | -- |
 | `sequential-thinking` | No | none | -- |
 
-The `GITHUB_PERSONAL_ACCESS_TOKEN` must be a classic PAT with `repo` and
-`project` scopes, or a fine-grained PAT with Contents, Issues, Pull
-requests, Metadata (read), and Projects permissions.
+The `GITHUB_PERSONAL_ACCESS_TOKEN` must be a classic PAT with `repo`,
+`project`, and `workflow` scopes, or a fine-grained PAT with Contents,
+Issues, Pull requests, Metadata (read), Projects, and Workflows
+permissions.
 
 ---
 

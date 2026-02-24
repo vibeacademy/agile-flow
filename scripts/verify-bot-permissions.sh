@@ -136,8 +136,9 @@ test_worker_scopes() {
 
     if echo "$worker_section" | grep -q "repo" && \
        echo "$worker_section" | grep -q "read:org" && \
-       echo "$worker_section" | grep -q "project"; then
-        pass "$WORKER_BOT has required scopes (repo, read:org, project)"
+       echo "$worker_section" | grep -q "project" && \
+       echo "$worker_section" | grep -q "workflow"; then
+        pass "$WORKER_BOT has required scopes (repo, read:org, project, workflow)"
     else
         fail "$WORKER_BOT missing required scopes"
         echo "  Current scopes: $(echo "$worker_section" | grep "Token scopes")"
@@ -152,8 +153,9 @@ test_reviewer_scopes() {
 
     if echo "$reviewer_section" | grep -q "repo" && \
        echo "$reviewer_section" | grep -q "read:org" && \
-       echo "$reviewer_section" | grep -q "project"; then
-        pass "$REVIEWER_BOT has required scopes (repo, read:org, project)"
+       echo "$reviewer_section" | grep -q "project" && \
+       echo "$reviewer_section" | grep -q "workflow"; then
+        pass "$REVIEWER_BOT has required scopes (repo, read:org, project, workflow)"
     else
         fail "$REVIEWER_BOT missing required scopes"
         echo "  Current scopes: $(echo "$reviewer_section" | grep "Token scopes")"

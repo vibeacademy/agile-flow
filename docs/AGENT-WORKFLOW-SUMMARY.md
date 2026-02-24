@@ -795,7 +795,7 @@ gh auth switch --user {org}-reviewer
 gh auth status
 
 # Check token scopes
-# Needs: repo, project, read:org
+# Needs: repo, project, workflow, read:org
 ```
 
 ### Agent Uses Wrong Account

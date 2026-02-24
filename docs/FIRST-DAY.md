@@ -133,11 +133,12 @@ gh auth login --with-token < worker-token.txt
 gh auth login --with-token < reviewer-token.txt
 ```
 
-> **PAT scopes**: Each bot account's PAT needs **`repo`** + **`project`**
-> + **`workflow`** scopes (classic PAT) so the agent can manage issues,
-> PRs, move tickets on the project board, and push workflow file changes.
-> If you used fine-grained PATs, enable `Contents`, `Issues`, `Pull
-> requests`, `Metadata` (read), `Projects`, and `Workflows` permissions.
+> **PAT scopes**: Each bot account's PAT needs **`repo`** +
+> **`project`** + **`workflow`** scopes (classic PAT) so the agent can
+> manage issues, PRs, move tickets on the project board, and push
+> workflow file changes. If you used fine-grained PATs, enable
+> `Contents`, `Issues`, `Pull requests`, `Metadata` (read), `Projects`,
+> and `Workflows` permissions.
 
 Verify the environment variables are set:
 

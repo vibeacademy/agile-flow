@@ -93,6 +93,7 @@ to configure and fully supported by the `gh` CLI.
 | Scope | Why |
 |-------|-----|
 | `repo` | Full repository access (code, PRs, issues) |
+| `workflow` | Push changes to `.github/workflows/` (required by GitHub) |
 | `read:org` | Read org membership (needed for `gh` CLI) |
 | `project` | Manage project boards |
 | `gist` | Required minimum for `gh auth login` |
@@ -102,6 +103,7 @@ to configure and fully supported by the `gh` CLI.
 | Scope | Why |
 |-------|-----|
 | `repo` | Read code + write PR reviews |
+| `workflow` | Push changes to `.github/workflows/` (required by GitHub) |
 | `read:org` | Read org membership |
 | `gist` | Required minimum for `gh auth login` |
 
@@ -356,6 +358,12 @@ Move them there and **restart Claude Desktop** (not just the terminal).
 
 Your PAT may not have the `repo` scope, or the token may have expired.
 Generate a new one.
+
+### "Resource not accessible" when pushing workflow files
+
+GitHub requires the `workflow` scope on any token that modifies files
+under `.github/workflows/`. Add the `workflow` scope to your PAT at
+**Settings > Developer settings > Personal access tokens (classic)**.
 
 ### Bot account invitation pending
 

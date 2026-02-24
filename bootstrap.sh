@@ -347,7 +347,7 @@ phase0_environment() {
                 echo "  the 'project' scope on a classic PAT, or the 'Projects'"
                 echo "  permission on a fine-grained PAT."
                 echo "  Re-create the PAT at https://github.com/settings/tokens"
-                echo "  and check both 'repo' and 'project'."
+                echo "  and check 'repo', 'project', and 'workflow'."
             fi
         fi
     fi
@@ -427,7 +427,7 @@ phase0_environment() {
                 echo "  Board operations require the 'project' scope on a classic"
                 echo "  PAT, or the 'Projects' permission on a fine-grained PAT."
                 echo "  Re-create the PAT at https://github.com/settings/tokens"
-                echo "  and check both 'repo' and 'project'."
+                echo "  and check 'repo', 'project', and 'workflow'."
             fi
         fi
     fi
@@ -678,7 +678,7 @@ MCPEOF
     echo "  Server                Required?   Token Needed"
     echo "  ────────────────────  ─────────   ────────────────────────────────"
     echo "  github                REQUIRED    GITHUB_PERSONAL_ACCESS_TOKEN"
-    echo "                                    (needs 'repo' + 'project' scopes)"
+    echo "                                    (needs 'repo' + 'project' + 'workflow' scopes)"
     echo "  memory                REQUIRED    none"
     echo "  sequential-thinking   optional    none"
     echo ""
@@ -686,7 +686,7 @@ MCPEOF
     echo "    export GITHUB_PERSONAL_ACCESS_TOKEN=ghp_xxxxx"
     echo ""
     echo "  Create a classic PAT at https://github.com/settings/tokens"
-    echo "  and check the 'repo' and 'project' scope boxes."
+    echo "  and check the 'repo', 'project', and 'workflow' scope boxes."
     echo ""
 
     if [ -n "$GITHUB_PERSONAL_ACCESS_TOKEN" ]; then

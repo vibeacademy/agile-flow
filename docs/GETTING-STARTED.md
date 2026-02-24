@@ -28,7 +28,7 @@ talk to GitHub on your behalf. To create one:
 
 1. Go to <https://github.com/settings/tokens>.
 2. Click **"Generate new token (classic)"**.
-3. Check the `repo` and `project` boxes.
+3. Check the `repo`, `project`, and `workflow` boxes.
 4. Click **Generate token** and copy it somewhere safe.
 
 ---
@@ -101,9 +101,10 @@ server requires a personal access token.
 
 1. Go to <https://github.com/settings/tokens>.
 2. Click **"Generate new token (classic)"**.
-3. Check the **`repo`** and **`project`** scope boxes.
+3. Check the **`repo`**, **`project`**, and **`workflow`** scope boxes.
    - `repo` — lets agents read/write code, issues, and pull requests.
    - `project` — lets agents move tickets on the project board.
+   - `workflow` — lets agents push changes to `.github/workflows/` files.
 4. Click **Generate token** and copy it.
 5. Add it to your shell profile:
 
@@ -131,8 +132,8 @@ echo $GITHUB_PERSONAL_ACCESS_TOKEN
 ```
 
 > **Bot accounts**: If you are using separate worker and reviewer bot
-> accounts, each bot's PAT also needs `repo` + `project` scopes. See
-> `.claude/README.md` for full bot account setup.
+> accounts, each bot's PAT also needs `repo` + `project` + `workflow`
+> scopes. See `.claude/README.md` for full bot account setup.
 
 ---
 
@@ -353,7 +354,7 @@ column.
 
 ### "GitHub token not working"
 
-- Make sure your token has `repo` and `project` permissions (see Step 2).
+- Make sure your token has `repo`, `project`, and `workflow` permissions (see Step 2).
 - Tokens expire. If yours is old, create a new one.
 - Verify the token is set by running `echo $GITHUB_TOKEN` in your
   terminal.

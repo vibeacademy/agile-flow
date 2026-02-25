@@ -7,10 +7,12 @@ on:
 jobs:
   ci:
     name: CI Checks
+    if: github.repository != 'vibeacademy/agile-flow'
     uses: ./.github/workflows/ci.yml
 
   wait-for-supabase:
     name: Wait for Supabase Branch
+    if: github.repository != 'vibeacademy/agile-flow'
     runs-on: ubuntu-latest
     outputs:
       branch_ready: ${{ steps.check.outputs.conclusion || 'skipped' }}

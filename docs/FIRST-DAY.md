@@ -59,7 +59,7 @@ Deploy before cloning — see your app live in under 15 minutes.
 Wait for the first deploy to complete (2-5 minutes on free tier).
 
 You should see: Your app at `https://agile-flow-starter.onrender.com`
-showing "Agile Flow Starter".
+showing "Agile Flow".
 
 Verify the health check:
 
@@ -216,6 +216,12 @@ Inside the Claude Code session, run each phase in order:
 /bootstrap-agents
 /bootstrap-workflow
 ```
+
+> **Stack swap:** During `/bootstrap-architecture`, you will choose your
+> tech stack (Next.js, FastAPI, etc.). If you choose something other than
+> Next.js, the agent swaps the app files automatically and Render redeploys
+> with your chosen stack. The initial deploy you did in Step 2 was a
+> pipeline verification — not your final stack.
 
 The workflow phase will ask you for:
 

@@ -21,7 +21,7 @@ steps.
 - [ ] Supabase account with project created
 - [ ] Supabase access token generated
 - [ ] Supabase GitHub integration enabled for their org
-- [ ] Git, Node.js 18+, Python 3.11+, uv installed
+- [ ] Git and Node.js 20+ installed (Python 3.11+ and uv only if using FastAPI starter)
 
 ### Instructor Setup (Repository)
 

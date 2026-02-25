@@ -59,7 +59,12 @@ If the user selects a **different stack**, follow the instructions below.
 
 The FastAPI starter is archived at `starters/fastapi/`. To swap:
 
-1. **Copy FastAPI files to root**:
+1. **Remove Next.js files from root**: Delete `package.json`,
+   `package-lock.json`, `next.config.ts`, `tsconfig.json`,
+   `vitest.config.ts`, `vitest.setup.ts`, `eslint.config.mjs`,
+   `app/` (the Next.js app directory), `__tests__/`, and
+   `instrumentation.ts`.
+2. **Copy FastAPI files to root**:
    ```bash
    cp -r starters/fastapi/app/ app/
    cp -r starters/fastapi/tests/ tests/
@@ -67,11 +72,6 @@ The FastAPI starter is archived at `starters/fastapi/`. To swap:
    cp starters/fastapi/uv.lock uv.lock
    cp starters/fastapi/render.yaml render.yaml
    ```
-2. **Remove Next.js files from root**: Delete `package.json`,
-   `package-lock.json`, `next.config.ts`, `tsconfig.json`,
-   `vitest.config.ts`, `vitest.setup.ts`, `eslint.config.mjs`,
-   `app/` (the Next.js app directory), `__tests__/`, and
-   `instrumentation.ts`.
 3. **Update `CLAUDE.md`**: Replace the build/test commands section with:
    ```bash
    uv run uvicorn app.main:app --reload  # Dev server

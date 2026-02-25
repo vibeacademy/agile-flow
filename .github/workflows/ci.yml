@@ -19,7 +19,7 @@ jobs:
           globs: |
             **/*.md
             !node_modules
-            !starters
+            !starters/**
           config: '.markdownlint.json'
 
   typecheck:

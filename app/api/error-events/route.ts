@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { parseSentryEnvelope, type ErrorInfo } from "./parse";
 
+/** Strip backtick sequences and newlines to prevent Markdown injection. */
+function sanitize(text: string): string {
+  return text.replace(/`{3,}/g, "```\u200B").replace(/[\r\n]+/g, " ");
+}
+
+/** Sanitize text for use inside a Markdown code fence. */
+function sanitizeCodeBlock(text: string): string {
+  return text.replace(/`{3,}/g, "```\u200B");
+}
+
 // In-memory rate limit: { errorMessage: timestampOfLastIssue }
 const recentIssues = new Map<string, number>();
 const RATE_LIMIT_MS = 3600 * 1000; // 1 hour
@@ -34,18 +44,18 @@ async function createGithubIssue(errorInfo: ErrorInfo): Promise<boolean> {
     return false;
   }
 
-  const title = `bug: ${errorInfo.type}: ${errorInfo.value.slice(0, 80)}`;
+  const title = `bug: ${sanitize(errorInfo.type)}: ${sanitize(errorInfo.value).slice(0, 80)}`;
   const body = `## Auto-Detected Error
 
-**Type:** \`${errorInfo.type}\`
-**Message:** ${errorInfo.value}
-**Environment:** ${errorInfo.environment}
-**Timestamp:** ${errorInfo.timestamp}
+**Type:** \`${sanitize(errorInfo.type)}\`
+**Message:** ${sanitize(errorInfo.value)}
+**Environment:** ${sanitize(errorInfo.environment)}
+**Timestamp:** ${sanitize(errorInfo.timestamp)}
 
 ### Stack Trace
 
 \`\`\`
-${errorInfo.stacktrace}
+${sanitizeCodeBlock(errorInfo.stacktrace)}
 \`\`\`
 
 ---

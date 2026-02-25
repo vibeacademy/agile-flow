@@ -4,7 +4,15 @@ This is the Python/FastAPI alternative to the default Next.js starter.
 
 ## How to swap
 
-1. Copy files from this directory to the project root:
+1. Remove the Next.js files from root:
+
+   ```bash
+   rm -rf app/ __tests__/ package.json package-lock.json \
+     next.config.ts tsconfig.json vitest.config.ts vitest.setup.ts \
+     eslint.config.mjs instrumentation.ts
+   ```
+
+2. Copy files from this directory to the project root:
 
    ```bash
    cp -r starters/fastapi/app/ app/
@@ -12,14 +20,6 @@ This is the Python/FastAPI alternative to the default Next.js starter.
    cp starters/fastapi/pyproject.toml pyproject.toml
    cp starters/fastapi/uv.lock uv.lock
    cp starters/fastapi/render.yaml render.yaml
-   ```
-
-2. Remove the Next.js files from root:
-
-   ```bash
-   rm -rf app/ __tests__/ package.json package-lock.json \
-     next.config.ts tsconfig.json vitest.config.ts vitest.setup.ts \
-     eslint.config.mjs instrumentation.ts
    ```
 
 3. Update `CLAUDE.md` build/test commands to:

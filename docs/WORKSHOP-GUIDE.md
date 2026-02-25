@@ -138,19 +138,21 @@ Note: Sentry SaaS is optional. The app ships with zero-config error telemetry th
 
 | Time | Activity | Commands Used |
 |------|----------|---------------|
-| 0:00-0:30 | Introduction, `/doctor` diagnostic, setup verification | `/doctor`, `gh auth status` |
+| 0:00-0:15 | Introduction, setup verification | `/doctor`, `gh auth status` |
+| 0:15-0:30 | Deploy to Render (deploy-first) | Render dashboard |
 | 0:30-1:00 | Product definition | `/bootstrap-product` |
-| 1:00-1:30 | Technical architecture | `/bootstrap-architecture` |
+| 1:00-1:30 | Technical architecture (stack selection) | `/bootstrap-architecture` |
 | 1:30-2:00 | Agent specialization | `/bootstrap-agents` |
 | 2:00-2:30 | Break | - |
 | 2:30-3:00 | Workflow activation | `/bootstrap-workflow` |
-| 3:00-3:30 | First ticket: deploy and verify | `/work-ticket` |
+| 3:00-3:30 | First ticket: implement and create PR | `/work-ticket` |
 | 3:30-4:00 | Trigger deliberate error, verify auto-created issue | `curl /error`, `gh issue list` |
 
 **Day 1 Success Criteria:**
 - `/doctor` reports zero FAILs
 - App deployed to Render
 - Health check endpoint returns `{"status": "ok"}`
+- Stack swap completed (if non-Next.js chosen)
 - Deliberate error auto-creates a GitHub issue
 - First PR created and merged
 

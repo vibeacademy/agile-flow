@@ -215,7 +215,7 @@ Postgres cannot do this (all preview environments share the same database).
 | Secret | Where to Find |
 |--------|--------------|
 | `SUPABASE_ACCESS_TOKEN` | Supabase Dashboard > Account > Access Tokens |
-| `SUPABASE_PROJECT_REF` | Supabase Dashboard > Project Settings > General (the `Reference ID`) |
+| `SUPABASE_PROJECT_REF` | Supabase Dashboard > Project Settings > General (the `Reference ID`). Use the project where the GitHub integration is installed (creates branch DBs on PR) -- typically production, NOT staging. |
 
 1. **For production deploys**, also add:
 

@@ -94,7 +94,12 @@ Configure these in **Repository Settings > Secrets and variables > Actions**:
 │                             │  Access Tokens                        │
 ├─────────────────────────────┼───────────────────────────────────────┤
 │  SUPABASE_PROJECT_REF       │  Supabase Dashboard > Project         │
-│                             │  Settings > General (Reference ID)    │
+│                             │  Settings > General (Reference ID).   │
+│                             │  Use the project where the GitHub     │
+│                             │  integration is installed (the one    │
+│                             │  that creates branch databases on     │
+│                             │  PR). Typically production, NOT       │
+│                             │  staging.                             │
 ├─────────────────────────────┼───────────────────────────────────────┤
 │  SUPABASE_DB_URL (optional) │  Supabase Dashboard > Project         │
 │                             │  Settings > Database > Connection     │
@@ -217,6 +222,32 @@ The system works even with partial configuration:
 | `RENDER_API_KEY` | Workflow skipped entirely |
 | `RENDER_SERVICE_ID` | Workflow skipped entirely |
 | `SUPABASE_DB_URL` | Production migrations skipped; preview flow unaffected |
+
+---
+
+## Troubleshooting
+
+### PostgREST schema cache not refreshed
+
+If you apply DDL changes to a branch database outside of `supabase db push`
+(e.g., via the Management API or a direct SQL connection), PostgREST may
+continue serving the old schema. Reload the cache by running this SQL
+against the branch database:
+
+```sql
+NOTIFY pgrst, 'reload schema';
+```
+
+The standard `supabase db push` migration flow handles this automatically.
+
+### Wrong `SUPABASE_PROJECT_REF`
+
+If your preview environment silently falls back to production data instead
+of using an isolated branch database, check that `SUPABASE_PROJECT_REF`
+points to the project where the Supabase GitHub integration is installed.
+Users with multiple Supabase projects (staging + production) commonly set
+this to the wrong one. See the [Required Secrets](#required-secrets) table
+above.
 
 ---
 

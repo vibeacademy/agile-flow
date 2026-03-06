@@ -501,4 +501,3 @@ for offering a commercial product that competes with Agile Flow (a
 developer workflow automation framework). On 2029-03-06, this version
 converts to the Apache License 2.0.
 <!-- FRAMEWORK:END -->
-

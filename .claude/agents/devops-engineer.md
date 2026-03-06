@@ -195,3 +195,5 @@ To add a new platform:
 3. Add preview environment pattern to Preview Environments section
 4. Add rollback procedure to Rollback section
 5. Document required secrets in `docs/CI-CD-GUIDE.md`
+
+<!-- SPDX-License-Identifier: BUSL-1.1 -->

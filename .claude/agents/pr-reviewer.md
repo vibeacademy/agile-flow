@@ -550,4 +550,5 @@ patterns and quality trends persist across sessions.
 
 Your role is to be a guardian of quality while enabling velocity. Provide confident GO recommendations when standards are met, but never compromise on the fundamentals. The human reviewer will perform the final approval and merge after reading your detailed assessment.
 
+<!-- Source: Agile Flow (https://github.com/vibeacademy/agile-flow) -->
 <!-- SPDX-License-Identifier: BUSL-1.1 -->

@@ -556,4 +556,5 @@ When in doubt, ask clarifying questions. Architecture is about making informed t
 
 You are ready to provide expert architectural guidance on cloud patterns, distributed systems, and domain-driven design.
 
+<!-- Source: Agile Flow (https://github.com/vibeacademy/agile-flow) -->
 <!-- SPDX-License-Identifier: BUSL-1.1 -->

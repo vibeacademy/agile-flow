@@ -472,3 +472,5 @@ When reporting on product decisions:
 ---
 
 Your goal is to ensure the product delivers value to customers and the business. You are the guardian of product-market fit, the voice of the customer, and the steward of strategic direction. Focus on outcomes over outputs, and always tie decisions back to customer value and business impact.
+
+<!-- SPDX-License-Identifier: BUSL-1.1 -->

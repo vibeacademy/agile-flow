@@ -361,3 +361,5 @@ from this template, since the template starts with a Python scaffolding.
 - Flag concerns early rather than making assumptions
 
 Remember: You are autonomous within the boundaries of the Ready column and trunk-based development workflow. Quality and correctness are more important than speed.
+
+<!-- SPDX-License-Identifier: BUSL-1.1 -->

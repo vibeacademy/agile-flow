@@ -108,6 +108,7 @@ TEMPLATE: Fill in project-specific details below when using this template.
 
 ### Project Information
 
+- **License**: BSL 1.1 (converts to Apache 2.0 after 3 years per release)
 - **Project Name**: [Your project name]
 - **Repository**: [GitHub repo URL]
 - **Project Board**: [GitHub project board URL]

@@ -1,6 +1,8 @@
 <!-- FRAMEWORK:START -->
 # Agile Flow
 
+[![License: BSL 1.1](https://img.shields.io/badge/License-BSL_1.1-blue.svg)](LICENSE)
+
 A Claude Code project template that bootstraps a complete agile development workflow with specialized AI agents.
 
 ## Why This Exists
@@ -492,5 +494,11 @@ This is a template project. To contribute:
 
 ## License
 
-MIT License - Use freely for any project.
-<\!-- FRAMEWORK:END -->
+Business Source License 1.1 — see [LICENSE](LICENSE) for full terms.
+
+You may use Agile Flow for any purpose, including production use, except
+for offering a commercial product that competes with Agile Flow (a
+developer workflow automation framework). On 2029-03-06, this version
+converts to the Apache License 2.0.
+<!-- FRAMEWORK:END -->
+

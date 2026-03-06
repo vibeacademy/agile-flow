@@ -31,6 +31,9 @@ jobs:
       - name: Validate JSON files
         run: ./scripts/validation/validate-json.sh
 
+      - name: Validate version parity
+        run: ./scripts/validation/validate-version-parity.sh
+
   build:
     name: build
     runs-on: ubuntu-latest

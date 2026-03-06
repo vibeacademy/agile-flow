@@ -1,3 +1,4 @@
+<!-- FRAMEWORK:START -->
 # Agile Flow
 
 A Claude Code project template that bootstraps a complete agile development workflow with specialized AI agents.
@@ -492,3 +493,4 @@ This is a template project. To contribute:
 ## License
 
 MIT License - Use freely for any project.
+<\!-- FRAMEWORK:END -->

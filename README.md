@@ -50,6 +50,15 @@ Agile Flow provides a team of AI agents that work together to manage your softwa
 
 The agents hand off work to each other through a structured workflow, with humans making final merge decisions.
 
+### What This Does NOT Include
+
+Agile Flow is a **workflow template**, not a full application. You provide:
+
+- **Your application code** — the template ships a minimal starter app; you replace it with your own
+- **Your database** — Supabase is recommended and documented, but you choose your data layer
+- **Your deployment platform** — Render is the default, but Vercel, Railway, and Cloudflare are documented alternatives
+- **Your domain logic** — agents help you build, but you define what to build
+
 ## Prerequisites
 
 - [Claude Code](https://claude.ai/code) CLI installed
@@ -93,94 +102,17 @@ Generic agents produce generic results. By building context progressively:
 3. **Agents get specialized** → agents give project-specific guidance
 4. **Workflow activates** → agents can execute with full context
 
-## Bootstrap Process
-
-### Option 1: Interactive Wizard (Recommended)
+## Quick Start
 
 ```bash
 ./bootstrap.sh
 ```
 
-The wizard guides you through each phase, invoking the right agents at the right time.
+The interactive wizard walks you through four phases: product definition,
+technical architecture, agent specialization, and workflow activation.
 
-### Option 2: Manual Phase-by-Phase
-
-#### Phase 1: Product Definition
-
-```bash
-# Start Claude Code
-claude
-
-# Invoke the product manager to create your PRD
-> /bootstrap-product
-```
-
-This creates `docs/PRODUCT-REQUIREMENTS.md` with:
-- Product vision and goals
-- Target audience
-- Core features
-- Success metrics
-- Competitive landscape
-
-#### Phase 2: Technical Architecture
-
-```bash
-# With PRD complete, define technical architecture
-> /bootstrap-architecture
-```
-
-This creates `docs/TECHNICAL-ARCHITECTURE.md` with:
-- Technology stack decisions
-- System design
-- Data models
-- API contracts
-- Infrastructure approach
-
-#### Phase 3: Agent Specialization
-
-```bash
-# Refine agents with project context
-> /bootstrap-agents
-```
-
-This updates agent configurations with:
-- Project-specific tech stack
-- Coding standards
-- Testing requirements
-- Architecture patterns
-
-#### Phase 4: Workflow Activation
-
-```bash
-# Set up GitHub and activate workflow
-> /bootstrap-workflow
-```
-
-This configures:
-- GitHub project board columns
-- Branch protection rules
-- Initial backlog from PRD features
-- First tickets in Ready column
-
-#### Phase 5: Scope Lock (Recommended)
-
-```bash
-# Formally lock MVP scope before development begins
-> /lock-scope
-```
-
-This creates `docs/SCOPE-LOCK.md` and signals that:
-- MVP feature list is fixed
-- All features have acceptance criteria
-- Major decisions are resolved
-- Changes require formal trade-off discussion
-
-**Why lock scope?** Scope lock is the handoff point where:
-- Engineering can commit to realistic timelines
-- Stakeholders are aligned on what "done" means
-- Scope creep becomes visible (requires unlocking)
-
-See [Scope Lock](#scope-lock) below for detailed criteria.
+For step-by-step instructions, see
+[docs/GETTING-STARTED.md](./docs/GETTING-STARTED.md).
 
 ## After Bootstrap
 
@@ -278,46 +210,16 @@ You'll need:
 
 #### Configuring the Token
 
-**Option 1: Environment variable (recommended)**
-
 Add to your shell profile (`~/.zshrc`, `~/.bashrc`, etc.):
+
 ```bash
-export GITHUB_TOKEN="github_pat_xxxxxxxxxxxx"
+export GITHUB_PERSONAL_ACCESS_TOKEN="github_pat_xxxxxxxxxxxx"
+source ~/.zshrc
 ```
 
-Then reload your shell:
-```bash
-source ~/.zshrc  # or ~/.bashrc
-```
-
-**Option 2: Claude Code settings**
-
-Create or edit `.claude/settings.local.json` in your project:
-```json
-{
-  "mcpServers": {
-    "github": {
-      "command": "npx",
-      "args": ["-y", "@anthropic/mcp-github"],
-      "env": {
-        "GITHUB_TOKEN": "github_pat_xxxxxxxxxxxx"
-      }
-    }
-  }
-}
-```
-
-**Important:** Add `.claude/settings.local.json` to `.gitignore` to avoid committing your token.
-
-#### Verifying the Token
-
-After configuring, start Claude Code and run a simple test:
-```bash
-claude
-> Check if GitHub MCP is working by listing my repositories
-```
-
-If configured correctly, the agent should be able to access your GitHub repositories.
+The bootstrap wizard uses this token to configure MCP. See
+[docs/GETTING-STARTED.md](./docs/GETTING-STARTED.md#step-2-set-up-github-access)
+for detailed setup options.
 
 ### MCP Servers (Required)
 

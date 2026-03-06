@@ -490,80 +490,10 @@ A ticket is done when:
 
 ## MCP Servers
 
-### Required: GitHub MCP
-
-Provides GitHub API access for project board operations.
-
-**Configuration**:
-
-```json
-{
-  "mcpServers": {
-    "github": {
-      "command": "npx",
-      "args": ["-y", "@anthropic/mcp-github"],
-      "env": {
-        "GITHUB_TOKEN": "${GITHUB_TOKEN}"
-      }
-    }
-  }
-}
-```
-
-**Used For**:
-
-- Reading issues and PRs
-- Creating/updating issues
-- Posting comments
-- Managing project board
-
-### Recommended: Memory MCP
-
-Provides persistent memory across sessions.
-
-**Configuration**:
-
-```json
-{
-  "mcpServers": {
-    "memory": {
-      "command": "npx",
-      "args": ["-y", "@anthropic/mcp-memory"]
-    }
-  }
-}
-```
-
-**Used For**:
-
-- Storing architectural decisions
-- Tracking prioritization history
-- Cross-agent context sharing
-- Session continuity
-
-### Recommended: Sequential Thinking MCP
-
-Provides structured reasoning for complex decisions.
-
-**Configuration**:
-
-```json
-{
-  "mcpServers": {
-    "sequential-thinking": {
-      "command": "npx",
-      "args": ["-y", "@anthropic/mcp-sequential-thinking"]
-    }
-  }
-}
-```
-
-**Used For**:
-
-- Complex problem decomposition
-- Multi-step planning
-- Architectural decisions
-- Priority evaluation
+Agents require three MCP servers: `github` (issues, PRs, project board),
+`memory` (persistent context), and `sequential-thinking` (structured
+reasoning). See [README.md > MCP Servers](../README.md#mcp-servers-required)
+for setup instructions and the `.mcp.json` configuration.
 
 ---
 

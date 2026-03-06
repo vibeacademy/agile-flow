@@ -1,3 +1,4 @@
+<!-- FRAMEWORK:START -->
 # Agile Flow - Claude Code Project Template
 
 ## >>> CRITICAL RULES — Read These First <<<
@@ -98,6 +99,8 @@ permissions.
 - Code blocks with language specifiers
 - Tables for structured data
 
+<!-- FRAMEWORK:END -->
+
 ---
 
 ## Project-Specific Configuration
@@ -138,6 +141,7 @@ approved, tests passing, no lint errors, PR merged to main.
 
 ---
 
+<!-- FRAMEWORK:START -->
 ## Reference
 
 > Detailed documentation lives in `docs/`. Consult as needed.
@@ -158,6 +162,7 @@ approved, tests passing, no lint errors, PR merged to main.
 | `docs/ARTIFACT-FLOW.md` | Artifact flow diagrams and authority matrix |
 | `docs/AGENT-WORKFLOW-SUMMARY.md` | Complete workflow documentation |
 | `docs/MAINTENANCE.md` | Weekly audit and maintenance guide |
+| `docs/DISTRIBUTION.md` | Framework/user-content boundary classification |
 | `scripts/doctor.sh` | Local diagnostic script (standalone) |
 
 ### Slash Commands
@@ -178,3 +183,4 @@ approved, tests passing, no lint errors, PR merged to main.
 | `/architect-review` | Architectural guidance |
 | `/lock-scope` | Lock MVP scope |
 | `/doctor` | Environment health check (local + remote) |
+<!-- FRAMEWORK:END -->

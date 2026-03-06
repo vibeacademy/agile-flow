@@ -32,12 +32,16 @@ Then open a pull request on GitHub to propose merging your branch into
 
 ## "Why do I need three GitHub accounts?"
 
-Agile Flow uses **three separate identities** so there is a clear record of
-who did what. Your personal account is for final decisions (approving and
-merging). A "worker" bot account writes code and opens pull requests. A
-"reviewer" bot account reviews pull requests. This separation means no
-single account can write code AND approve it, which is a basic safety
-practice. You only set this up once.
+> **Solo developers:** You do not. You can use your personal GitHub
+> account for everything. Bot accounts are optional and mainly useful for
+> teams that want a clear audit trail.
+
+For **team setups**, Agile Flow uses three separate identities so there is
+a clear record of who did what. Your personal account is for final
+decisions (approving and merging). A "worker" bot account writes code and
+opens pull requests. A "reviewer" bot account reviews pull requests. This
+separation means no single account can write code AND approve it, which
+is a basic safety practice. You only set this up once.
 
 **What to do:**
 
@@ -146,8 +150,10 @@ git commit -m "fix: resolve lint errors"
 git push
 ```
 
-Never use `git push --no-verify` to skip the hook. It exists to protect
-you.
+Never use `git push --no-verify` to skip the hook. If broken code reaches
+GitHub it will fail CI, block your pull request, and potentially break
+other people's preview environments. The hook catches these problems
+before they leave your machine.
 
 ---
 

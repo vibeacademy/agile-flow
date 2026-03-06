@@ -33,35 +33,34 @@ talk to GitHub on your behalf. To create one:
 
 ---
 
-## Step 1: Create Your Project
+## Step 1: Create Your Project from the Template
 
-Open your terminal (Terminal on Mac, Command Prompt or PowerShell on
-Windows) and run these commands one at a time.
+Go to the [Agile Flow template](https://github.com/vibeacademy/agile-flow)
+on GitHub and click **"Use this template" > "Create a new repository"**.
 
-```bash
-# Create a folder for your project and move into it
-mkdir my-project
-cd my-project
+- **Owner**: Choose your GitHub account or organization.
+- **Repository name**: Pick a name for your project (e.g., `my-app`).
+- **Visibility**: Public or Private -- your choice.
 
-# Download the Agile Flow template into that folder
-# (replace the URL with your own copy if you have one)
-git clone https://github.com/your-org/agile-flow.git .
+Click **Create repository**.
 
-# Remove the template's history so you start fresh
-rm -rf .git
-git init
-```
+> **Why "Use this template" instead of Fork?** A template creates a fresh
+> repo with no upstream link, its own issue tracker, and its own project
+> board -- exactly what you need for a new project.
 
-**You should see:** A message like `Initialized empty Git repository in
-/path/to/my-project/.git/` after the last command.
+**You should see:** Your own repository at
+`https://github.com/your-name/my-app`.
 
-Now connect your project to GitHub:
+Now clone it locally:
 
 ```bash
-# Tell Git where your GitHub repository lives
-# (replace with your actual repository URL)
-git remote add origin git@github.com:your-org/your-project.git
+cd ~/projects   # or wherever you keep repos
+git clone https://github.com/your-name/my-app.git
+cd my-app
+npm install
 ```
+
+**You should see:** Dependencies installed with no errors.
 
 ---
 
@@ -102,9 +101,9 @@ server requires a personal access token.
 1. Go to <https://github.com/settings/tokens>.
 2. Click **"Generate new token (classic)"**.
 3. Check the **`repo`**, **`project`**, and **`workflow`** scope boxes.
-   - `repo` — lets agents read/write code, issues, and pull requests.
-   - `project` — lets agents move tickets on the project board.
-   - `workflow` — lets agents push changes to `.github/workflows/` files.
+   - `repo` -- lets agents read/write code, issues, and pull requests.
+   - `project` -- lets agents move tickets on the project board.
+   - `workflow` -- lets agents push changes to `.github/workflows/` files.
 4. Click **Generate token** and copy it.
 5. Add it to your shell profile:
 
@@ -372,6 +371,23 @@ This usually means Phase 3 (agent configuration) did not complete. Run:
 - Make sure the ticket is in the "In Review" column on your project board.
 - Check that the pull request is linked to a GitHub issue.
 - Verify the project board URL is set in `CLAUDE.md`.
+
+---
+
+## Checking for Updates
+
+Agile Flow tracks its version in the `.agile-flow-version` file at your
+project root. To check which version you are running:
+
+```bash
+jq .version .agile-flow-version
+```
+
+To see if a newer version is available, visit the
+[Agile Flow releases page](https://github.com/vibeacademy/agile-flow/releases).
+
+The `/doctor` command also checks for updates automatically and will warn
+you if a newer version is available.
 
 ---
 

@@ -177,6 +177,13 @@ jobs:
               -H "Authorization: Bearer ${RENDER_API_KEY}" \
               -H "Accept: application/json")
 
+            if ! echo "$SERVICES_RESPONSE" | jq -e 'type' > /dev/null 2>&1; then
+              echo "Attempt $ATTEMPT/$MAX_ATTEMPTS: Render API returned non-JSON response"
+              echo "Response (first 500 chars): ${SERVICES_RESPONSE:0:500}"
+              sleep 10
+              continue
+            fi
+
             PREVIEW_SERVICE=$(echo "$SERVICES_RESPONSE" | jq -r --arg pr "$PR_NUMBER" \
               '[.[] | select(.service.name | test("pr-" + $pr + "$"; "i") or test("pr " + $pr + "$"; "i") or test("#" + $pr + "$"))] | .[0]')
 
@@ -191,10 +198,17 @@ jobs:
                 echo "preview_found=true" >> "$GITHUB_OUTPUT"
 
                 # Check current deploy status
-                DEPLOY_STATUS=$(curl -s -X GET \
+                DEPLOY_RESPONSE=$(curl -s -X GET \
                   "https://api.render.com/v1/services/${SVC_ID}/deploys?limit=1" \
                   -H "Authorization: Bearer ${RENDER_API_KEY}" \
-                  -H "Accept: application/json" | jq -r '.[0].deploy.status // "unknown"')
+                  -H "Accept: application/json")
+
+                if ! echo "$DEPLOY_RESPONSE" | jq -e 'type' > /dev/null 2>&1; then
+                  echo "WARNING: Deploy status API returned non-JSON: ${DEPLOY_RESPONSE:0:500}"
+                  DEPLOY_STATUS="unknown"
+                else
+                  DEPLOY_STATUS=$(echo "$DEPLOY_RESPONSE" | jq -r '.[0].deploy.status // "unknown"')
+                fi
 
                 echo "Current deploy status: $DEPLOY_STATUS"
                 echo "deploy_status=$DEPLOY_STATUS" >> "$GITHUB_OUTPUT"
@@ -224,10 +238,16 @@ jobs:
           elif [ -z "$SVC_ID" ] || [ "$SVC_ID" = "null" ]; then
             echo "WARNING: Could not find preview service after $MAX_ATTEMPTS attempts"
             echo "preview_found=false" >> "$GITHUB_OUTPUT"
-            BASE_NAME=$(curl -s -X GET \
+            BASE_NAME_RESPONSE=$(curl -s -X GET \
               "https://api.render.com/v1/services/${RENDER_SERVICE_ID}" \
               -H "Authorization: Bearer ${RENDER_API_KEY}" \
-              -H "Accept: application/json" | jq -r '.name // "app"')
+              -H "Accept: application/json")
+            if echo "$BASE_NAME_RESPONSE" | jq -e 'type' > /dev/null 2>&1; then
+              BASE_NAME=$(echo "$BASE_NAME_RESPONSE" | jq -r '.name // "app"')
+            else
+              echo "WARNING: Could not fetch base service name: ${BASE_NAME_RESPONSE:0:500}"
+              BASE_NAME="app"
+            fi
             echo "preview_url=https://${BASE_NAME}-pr-${PR_NUMBER}.onrender.com" >> "$GITHUB_OUTPUT"
           else
             # Service was found but deploy didn't reach terminal state in time
@@ -252,6 +272,13 @@ jobs:
             "https://api.render.com/v1/services/${PREVIEW_SERVICE_ID}/env-vars" \
             -H "Authorization: Bearer ${RENDER_API_KEY}" \
             -H "Accept: application/json")
+
+          if ! echo "$CURRENT_VARS" | jq -e 'type' > /dev/null 2>&1; then
+            echo "ERROR: Render env-vars API returned non-JSON response"
+            echo "Response (first 500 chars): ${CURRENT_VARS:0:500}"
+            echo "env_updated=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
 
           echo "Current env vars count: $(echo "$CURRENT_VARS" | jq 'length')"
 
@@ -300,6 +327,13 @@ jobs:
             -H "Content-Type: application/json" \
             -d '{"clearCache": "do_not_clear"}')
 
+          if ! echo "$DEPLOY_RESPONSE" | jq -e 'type' > /dev/null 2>&1; then
+            echo "ERROR: Render deploy API returned non-JSON response"
+            echo "Response (first 500 chars): ${DEPLOY_RESPONSE:0:500}"
+            echo "redeploy_triggered=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
           DEPLOY_ID=$(echo "$DEPLOY_RESPONSE" | jq -r '.id // empty')
 
           if [ -n "$DEPLOY_ID" ] && [ "$DEPLOY_ID" != "null" ]; then
@@ -329,10 +363,17 @@ jobs:
           while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
             ATTEMPT=$((ATTEMPT + 1))
 
-            STATUS=$(curl -s -X GET \
+            POLL_RESPONSE=$(curl -s -X GET \
               "https://api.render.com/v1/services/${PREVIEW_SERVICE_ID}/deploys/${DEPLOY_ID}" \
               -H "Authorization: Bearer ${RENDER_API_KEY}" \
-              -H "Accept: application/json" | jq -r '.status // "unknown"')
+              -H "Accept: application/json")
+
+            if ! echo "$POLL_RESPONSE" | jq -e 'type' > /dev/null 2>&1; then
+              echo "WARNING: Deploy poll returned non-JSON: ${POLL_RESPONSE:0:500}"
+              STATUS="unknown"
+            else
+              STATUS=$(echo "$POLL_RESPONSE" | jq -r '.status // "unknown"')
+            fi
 
             echo "Deploy status: $STATUS (attempt $ATTEMPT/$MAX_ATTEMPTS)"
 
@@ -356,12 +397,17 @@ jobs:
           PREVIEW_SERVICE_ID="${{ steps.render_preview.outputs.preview_service_id }}"
 
           if [ -n "$PREVIEW_SERVICE_ID" ] && [ "$PREVIEW_SERVICE_ID" != "null" ]; then
-            FETCHED_URL=$(curl -s -X GET \
+            SVC_DETAIL_RESPONSE=$(curl -s -X GET \
               "https://api.render.com/v1/services/${PREVIEW_SERVICE_ID}" \
               -H "Authorization: Bearer ${RENDER_API_KEY}" \
-              -H "Accept: application/json" | jq -r '.serviceDetails.url // empty')
-            if [ -n "$FETCHED_URL" ]; then
-              PREVIEW_URL="$FETCHED_URL"
+              -H "Accept: application/json")
+            if echo "$SVC_DETAIL_RESPONSE" | jq -e 'type' > /dev/null 2>&1; then
+              FETCHED_URL=$(echo "$SVC_DETAIL_RESPONSE" | jq -r '.serviceDetails.url // empty')
+              if [ -n "$FETCHED_URL" ]; then
+                PREVIEW_URL="$FETCHED_URL"
+              fi
+            else
+              echo "WARNING: Could not fetch service details: ${SVC_DETAIL_RESPONSE:0:500}"
             fi
           fi
 

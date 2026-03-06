@@ -113,7 +113,7 @@ configured in this template).
 | Secret | Where to Find |
 |--------|--------------|
 | `SUPABASE_ACCESS_TOKEN` | Supabase Dashboard > Account > Access Tokens |
-| `SUPABASE_PROJECT_REF` | Supabase Dashboard > Project Settings > General (Reference ID) |
+| `SUPABASE_PROJECT_REF` | Supabase Dashboard > Project Settings > General (Reference ID). Use the project where the GitHub integration is installed (creates branch DBs on PR) -- typically production, NOT staging. |
 
 When Supabase is configured, the workflow:
 

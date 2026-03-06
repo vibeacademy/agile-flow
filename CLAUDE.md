@@ -183,4 +183,4 @@ approved, tests passing, no lint errors, PR merged to main.
 | `/architect-review` | Architectural guidance |
 | `/lock-scope` | Lock MVP scope |
 | `/doctor` | Environment health check (local + remote) |
-<\!-- FRAMEWORK:END -->
+<!-- FRAMEWORK:END -->

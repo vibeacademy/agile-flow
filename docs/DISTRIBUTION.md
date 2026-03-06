@@ -22,7 +22,7 @@ Hybrid files use markers to delineate framework-controlled sections.
 | Markdown (`.md`) | `<!-- FRAMEWORK:START -->` | `<!-- FRAMEWORK:END -->` |
 | Shell / YAML | `# FRAMEWORK:START` | `# FRAMEWORK:END` |
 | TypeScript / JS | `// FRAMEWORK:START` | `// FRAMEWORK:END` |
-| JSON | Uses template/local split pattern (no inline markers) |
+| JSON | Uses template/local split pattern | (no inline markers) |
 
 Content **outside** markers in hybrid files is user-owned. Content
 **inside** markers may be updated by the template-sync mechanism.

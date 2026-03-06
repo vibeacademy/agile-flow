@@ -1,7 +1,7 @@
 <!-- FRAMEWORK:START -->
 # Agile Flow
 
-[![License: BSL 1.1](https://img.shields.io/badge/License-BSL_1.1-blue.svg)](LICENSE)
+[![License: BSL 1.1](https://img.shields.io/badge/License-BSL_1.1-blue.svg)](LICENSE) [![Version](https://img.shields.io/badge/version-0.1.0-green.svg)](.agile-flow-version) [![Use this template](https://img.shields.io/badge/Use_this-template-2ea44f)](https://github.com/vibeacademy/agile-flow/generate)
 
 A Claude Code project template that bootstraps a complete agile development workflow with specialized AI agents.
 
@@ -492,6 +492,10 @@ This is a template project. To contribute:
 2. Make improvements to agent definitions or commands
 3. Submit PR with clear description of changes
 
+## Attribution
+
+Built with [Agile Flow](https://github.com/vibeacademy/agile-flow) by
+[VibeAcademy](https://vibeacademy.com).
 ## License
 
 Business Source License 1.1 — see [LICENSE](LICENSE) for full terms.

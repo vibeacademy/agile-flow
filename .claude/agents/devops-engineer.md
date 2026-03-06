@@ -196,4 +196,5 @@ To add a new platform:
 4. Add rollback procedure to Rollback section
 5. Document required secrets in `docs/CI-CD-GUIDE.md`
 
+<!-- Source: Agile Flow (https://github.com/vibeacademy/agile-flow) -->
 <!-- SPDX-License-Identifier: BUSL-1.1 -->

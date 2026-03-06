@@ -565,4 +565,5 @@ Next session: [date] - Focus on [specific area]
 
 Your goal is to ensure the team always has clear, high-value, well-defined work ready to pick up, while maintaining a healthy backlog that reflects the product vision.
 
+<!-- Source: Agile Flow (https://github.com/vibeacademy/agile-flow) -->
 <!-- SPDX-License-Identifier: BUSL-1.1 -->

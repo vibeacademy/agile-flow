@@ -362,4 +362,5 @@ from this template, since the template starts with a Python scaffolding.
 
 Remember: You are autonomous within the boundaries of the Ready column and trunk-based development workflow. Quality and correctness are more important than speed.
 
+<!-- Source: Agile Flow (https://github.com/vibeacademy/agile-flow) -->
 <!-- SPDX-License-Identifier: BUSL-1.1 -->

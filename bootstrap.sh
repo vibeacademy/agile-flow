@@ -976,6 +976,12 @@ show_completion() {
     echo "  - docs/PRODUCT-ROADMAP.md - Your roadmap"
     echo "  - docs/TECHNICAL-ARCHITECTURE.md - Your architecture"
     echo ""
+    local af_version="unknown"
+    if [ -f ".agile-flow-version" ]; then
+        af_version=$(jq -r '.version // "unknown"' .agile-flow-version 2>/dev/null)
+    fi
+    echo -e "Powered by ${CYAN}Agile Flow${NC} v${af_version} — https://github.com/vibeacademy/agile-flow"
+    echo ""
 }
 
 # ===========================================================================

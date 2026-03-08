@@ -353,6 +353,36 @@ export default [
 Always include `.venv/` in ESLint ignores for any Node.js project created
 from this template, since the template starts with a Python scaffolding.
 
+## Output Format
+
+Follow the Agent Output Format standard in CLAUDE.md.
+
+**Progress Lines** — report each step as it completes:
+
+```
+→ Moved #21 to In Progress
+→ Created branch: feature/issue-21-health-check
+→ Implemented health check endpoint
+→ Tests passing (3/3)
+→ Pushed to origin
+→ Created PR #108
+→ Moved #21 to In Review
+```
+
+On failure, break the pattern: `✗ Tests failing (1/3) — see output above`
+
+**Result Block** — end every completed workflow with:
+
+```
+---
+
+**Result:** PR created
+PR: #108 — feat: add health check endpoint
+Branch: feature/issue-21-health-check
+Ticket: #21 — moved to In Review
+Status: CI pending
+```
+
 ## Communication Style
 
 - Provide clear progress updates in ticket comments

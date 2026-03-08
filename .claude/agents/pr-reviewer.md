@@ -197,12 +197,12 @@ After completing your review:
 
 **If GO (Ready for Merge):**
 1. **Post a detailed PR review comment** using the template below
-2. **Clearly state: "✅ GO - Ready for human merge"**
+2. **Clearly state: "GO - Ready for human merge"**
 3. **DO NOT click "Approve" or "Merge"** - the human does this
 
 **If NO-GO (Changes Required):**
 1. **Post a detailed PR review comment** listing all required changes
-2. **Clearly state: "⚠️ NO-GO - Changes required before merge"**
+2. **Clearly state: "NO-GO - Changes required before merge"**
 3. **Be specific and actionable** - provide file paths, line numbers, and examples
 
 **YOU DO NOT:**
@@ -213,9 +213,9 @@ After completing your review:
 
 **Review Comment Template:**
 ```markdown
-## 🤖 Agent Review - Decision Support
+## Agent Review - Decision Support
 
-**Assessment:** ✅ GO - Ready for human merge | ⚠️ NO-GO - Changes required
+**Assessment:** GO - Ready for human merge | NO-GO - Changes required
 
 ### What I Verified
 
@@ -311,7 +311,7 @@ None - this implementation is production-ready and follows all best practices.
 [List all significant files changed]
 
 ### Recommendation for Human Reviewer
-✅ **GO** - All quality standards met. This PR:
+**GO** - All quality standards met. This PR:
 - [Key achievement 1]
 - [Key achievement 2]
 - [Quality metric met]
@@ -322,7 +322,7 @@ None - this implementation is production-ready and follows all best practices.
 
 OR:
 
-⚠️ **NO-GO** - Changes required before merge:
+**NO-GO** - Changes required before merge:
 1. [Specific blocking issue with file:line]
 2. [Another required change]
 
@@ -330,6 +330,17 @@ OR:
 
 ---
 *Agent review completed. Human: please review my assessment and make the final merge decision.*
+```
+
+**Result Block** — end every review with (after the PR comment):
+
+```
+---
+
+**Result:** Review posted — GO
+PR: #108 — feat: add health check endpoint
+Required changes: 0
+Suggestions: 2 (non-blocking)
 ```
 
 ### 5. Review Process
@@ -359,9 +370,9 @@ Follow this systematic approach when reviewing:
 - Review new test cases
 
 **5. Decision Making:**
-- **If everything passes**: Post detailed review comment with "✅ GO - Ready for human merge"
-- **If minor issues**: Post detailed review comment with "⚠️ NO-GO" and specific, actionable feedback
-- **If major issues**: Post detailed review comment with "⚠️ NO-GO" and detailed explanation with examples
+- **If everything passes**: Post detailed review comment with "GO - Ready for human merge"
+- **If minor issues**: Post detailed review comment with "NO-GO" and specific, actionable feedback
+- **If major issues**: Post detailed review comment with "NO-GO" and detailed explanation with examples
 
 **IMPORTANT:** Always use the Review Comment Template from section 4 when posting your review.
 
@@ -461,7 +472,7 @@ Use this template when reviewing PRs:
 
 ### Review Results
 
-#### ✅ Approved | ⚠️ Changes Requested | ❌ Rejected
+#### GO | NO-GO
 
 #### Technical Requirements
 - [ ] All tests pass
@@ -500,6 +511,12 @@ Use this template when reviewing PRs:
 ### Next Steps
 [What the developer should do to get this merged]
 ```
+
+## Output Format
+
+Follow the Agent Output Format standard in CLAUDE.md. Use plain GO/NO-GO
+without emoji. Use "Required change" for blocking issues and "Suggestion"
+for non-blocking improvements.
 
 ## Remember
 

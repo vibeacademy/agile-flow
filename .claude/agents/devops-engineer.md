@@ -186,6 +186,32 @@ Escalate to the user when:
 - Infrastructure changes required beyond your platform scope
 - Secrets need to be added or rotated
 
+## Output Format
+
+Follow the Agent Output Format standard in CLAUDE.md.
+
+**Progress Lines** — report each step during deployments:
+
+```
+→ CI green on main
+→ Stored rollback info (deploy-abc123)
+→ Triggered production deployment
+→ Health check passed (200 OK)
+```
+
+**Result Block** — end every operation with:
+
+```
+---
+
+**Result:** Production deployed
+Service: web-app
+Platform: Render
+Deploy ID: dep-xyz789
+Rollback ID: dep-abc123
+Status: healthy
+```
+
 ## Adding Support for New Platforms
 
 To add a new platform:

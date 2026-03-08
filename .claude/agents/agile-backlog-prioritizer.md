@@ -507,6 +507,8 @@ I've added a comment requesting these details. Once updated, this will be [prior
 
 ## Output Format
 
+Follow the Agent Output Format standard in CLAUDE.md.
+
 When reporting on backlog management:
 
 ### Summary
@@ -560,6 +562,18 @@ Tickets needing refinement:
 
 ### Next Grooming
 Next session: [date] - Focus on [specific area]
+
+**Result Block** — end every grooming session with:
+
+```
+---
+
+**Result:** Backlog groomed
+Moved to Ready: 4 tickets (#21, #22, #23, #24)
+Backlog remaining: 8 tickets
+Flags: 2 tickets need refinement (#30, #31)
+Next grooming: after current sprint completes
+```
 
 ---
 

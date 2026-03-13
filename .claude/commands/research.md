@@ -72,6 +72,16 @@ What geographic focus, if any?
 Enter a number (1-5) or describe:
 ```
 
+**Question 6 (Optional)**
+```
+Do you have any specific URLs you'd like included in the research?
+(articles, competitor pages, market reports, pricing pages, etc.)
+
+Paste up to 5 URLs, one per line.
+
+Type "skip" to continue without.
+```
+
 ---
 
 ## After Collecting All Responses
@@ -96,11 +106,19 @@ Attempt to use `WebSearch` to gather real market data. Run searches in parallel 
 
 For each search result, note the source URL for the Sources section.
 
-**If `WebSearch` is unavailable:** Skip web research entirely. Instead, conduct a structured interview — ask 3-5 follow-up questions to extract what the user already knows about the market, competitors, and audience. Note all findings as "User-reported (not web-validated)" in the confidence labels.
+**User-provided URLs (from Q6):**
+
+If the user provided URLs in Q6, fetch each one using `WebFetch` after the `WebSearch` queries complete. Run fetches in parallel where possible:
+
+- Extract key findings from each URL (market data, competitor info, pricing, audience insights)
+- Categorize findings by the section they inform (Market Overview, Competitor Analysis, Target Audience)
+- Use the original URL as the source attribution in the Sources section
+
+**If `WebSearch` is unavailable:** Skip web search entirely. Instead, conduct a structured interview — ask 3-5 follow-up questions to extract what the user already knows about the market, competitors, and audience. Note all findings as "User-reported (not web-validated)" in the confidence labels. However, if the user provided URLs in Q6, still fetch those using `WebFetch` — URL fetching does not depend on `WebSearch` availability.
 
 ### Phase 2: Synthesize
 
-Combine user answers with web research findings. For each section, assign a confidence label:
+Combine user answers, web research findings, and any content fetched from user-provided URLs. For each section, assign a confidence label:
 
 | Label | Meaning |
 |-------|---------|

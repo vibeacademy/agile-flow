@@ -38,3 +38,7 @@ export function register() {
     }
   }
 }
+
+// Next.js 15+ hook: captures unhandled errors from API routes,
+// Server Components, and Server Actions.
+export const onRequestError = Sentry.captureRequestError;

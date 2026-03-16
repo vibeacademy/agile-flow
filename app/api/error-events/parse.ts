@@ -54,9 +54,9 @@ export function parseSentryEnvelope(body: string): ErrorInfo | null {
             type: exc.type ?? "UnknownError",
             value: exc.value ?? "No message",
             stacktrace: formatStacktrace(exc.stacktrace),
-            timestamp: data.timestamp ?? "",
-            environment: data.environment ?? "unknown",
-            serverName: data.server_name ?? "",
+            timestamp: String(data.timestamp ?? ""),
+            environment: String(data.environment ?? "unknown"),
+            serverName: String(data.server_name ?? ""),
           };
         }
       }

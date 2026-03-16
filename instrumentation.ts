@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/nextjs";
+import { createTransport } from "@sentry/core";
 
 export function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
@@ -8,14 +9,26 @@ export function register() {
       // External Sentry/GlitchTip — use the DSN directly
       Sentry.init({ dsn, tracesSampleRate: 0 });
     } else {
-      // Zero-config: tunnel events to our own error-events endpoint.
-      // A dummy DSN is required for the SDK to initialize; the tunnel
-      // option overrides where envelopes are actually sent.
-      Sentry.init({
-        dsn: "https://self@localhost/0",
-        tunnel: "/api/error-events",
-        tracesSampleRate: 0,
-      });
+      // Zero-config: route error events to our own /api/error-events
+      // endpoint using a custom transport. The tunnel option only works
+      // client-side; server-side requires an absolute URL transport.
+      const baseUrl =
+        process.env.RENDER_EXTERNAL_URL || process.env.APP_URL || "";
+      if (baseUrl) {
+        const endpoint = `${baseUrl}/api/error-events`;
+        Sentry.init({
+          dsn: "https://self@localhost/0",
+          tracesSampleRate: 0,
+          transport: (options: Parameters<typeof createTransport>[0]) =>
+            createTransport(options, async (request) => {
+              const res = await fetch(endpoint, {
+                method: "POST",
+                body: request.body as string,
+              });
+              return { statusCode: res.status };
+            }),
+        });
+      }
     }
   }
 }

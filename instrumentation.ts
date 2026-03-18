@@ -1,13 +1,21 @@
 import * as Sentry from "@sentry/nextjs";
 import { createTransport } from "@sentry/core";
 
+function detectEnvironment(): string {
+  // Render sets IS_PULL_REQUEST_PREVIEW=true for PR preview deploys
+  if (process.env.IS_PULL_REQUEST_PREVIEW === "true") return "preview";
+  if (process.env.NODE_ENV === "production") return "production";
+  return process.env.NODE_ENV || "development";
+}
+
 export function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
     const dsn = process.env.SENTRY_DSN;
+    const environment = detectEnvironment();
 
     if (dsn) {
       // External Sentry/GlitchTip — use the DSN directly
-      Sentry.init({ dsn, tracesSampleRate: 0 });
+      Sentry.init({ dsn, environment, tracesSampleRate: 0 });
     } else {
       // Zero-config: route error events to our own /api/error-events
       // endpoint using a custom transport. The tunnel option only works
@@ -19,6 +27,7 @@ export function register() {
         const endpoint = `${baseUrl}/api/error-events`;
         Sentry.init({
           dsn: `https://self@${host}/0`,
+          environment,
           tracesSampleRate: 0,
           transport: (options: Parameters<typeof createTransport>[0]) =>
             createTransport(options, async (request) => {

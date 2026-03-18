@@ -25,7 +25,7 @@ const VALID_ENVELOPE = [
         },
       ],
     },
-    timestamp: "2024-01-01T00:00:00Z",
+    timestamp: 1704067200,
     environment: "production",
     server_name: "web-1",
   }),
@@ -44,6 +44,7 @@ describe("parseSentryEnvelope", () => {
     expect(result!.type).toBe("TypeError");
     expect(result!.value).toBe("Cannot read properties of null");
     expect(result!.environment).toBe("production");
+    expect(result!.timestamp).toBe("2024-01-01T00:00:00.000Z");
     expect(result!.stacktrace).toContain("app/page.tsx");
   });
 

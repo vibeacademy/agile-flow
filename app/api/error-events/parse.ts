@@ -39,6 +39,17 @@ function formatStacktrace(
   return lines.length > 0 ? lines.join("\n") : "No stacktrace available";
 }
 
+function formatTimestamp(ts: unknown): string {
+  if (!ts) return "";
+  const num = Number(ts);
+  if (!isNaN(num)) {
+    // Sentry sends Unix seconds (e.g. 1773831433.554)
+    return new Date(num * 1000).toISOString();
+  }
+  // Already a string date
+  return String(ts);
+}
+
 export function parseSentryEnvelope(body: string): ErrorInfo | null {
   const lines = body.split("\n");
   for (const line of lines) {
@@ -54,7 +65,7 @@ export function parseSentryEnvelope(body: string): ErrorInfo | null {
             type: exc.type ?? "UnknownError",
             value: exc.value ?? "No message",
             stacktrace: formatStacktrace(exc.stacktrace),
-            timestamp: String(data.timestamp ?? ""),
+            timestamp: formatTimestamp(data.timestamp),
             environment: String(data.environment ?? "unknown"),
             serverName: String(data.server_name ?? ""),
           };

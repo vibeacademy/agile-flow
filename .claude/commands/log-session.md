@@ -75,7 +75,7 @@ Use the template structure from existing journals in `reports/session-journals/`
    - Report results using standard vocabulary:
      `→ Memory OK: CompletedTicket-{issue} exists for #{issue}`
      `✗ Missing memory: CompletedTicket-{issue} — no entity found for #{issue}`
-     `  → Run /validate-memory to create missing entities`
+     `→ Run /validate-memory to create missing entities`
    - Summary: `→ Memory validation: {found}/{total} completed tickets have CompletedTicket entities`
 4. Present a brief summary to the user
 

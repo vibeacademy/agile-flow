@@ -66,10 +66,22 @@ Use the template structure from existing journals in `reports/session-journals/`
 
 1. Read the journal back to verify completeness
 2. Cross-reference against the git log and board state to catch anything missed
-3. Present a brief summary to the user
+3. **Validate memory writes** — check that completed tickets have corresponding
+   `CompletedTicket` entities in Memory MCP:
+   - For each ticket listed in "Tickets Delivered", query Memory MCP:
+     `mcp__memory__search_nodes({ "query": "CompletedTicket-{issue-number}" })`
+   - If Memory MCP is not configured, skip validation:
+     `→ Memory validation skipped — Memory MCP server not available`
+   - Report results using standard vocabulary:
+     `→ Memory OK: CompletedTicket-{issue} exists for #{issue}`
+     `✗ Missing memory: CompletedTicket-{issue} — no entity found for #{issue}`
+     `→ Run /validate-memory to create missing entities`
+   - Summary: `→ Memory validation: {found}/{total} completed tickets have CompletedTicket entities`
+4. Present a brief summary to the user
 
 ## Related Commands
 
+- `/validate-memory` — Standalone memory validation and entity creation
 - `/sprint-status` — Current board health overview
 - `/groom-backlog` — Prioritize and populate Ready column
 - `/work-ticket` — Pick up next ticket

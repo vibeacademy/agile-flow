@@ -193,6 +193,7 @@ approved, tests passing, no lint errors, PR merged to main.
 | `docs/AGENT-WORKFLOW-SUMMARY.md` | Complete workflow documentation |
 | `docs/MAINTENANCE.md` | Weekly audit and maintenance guide |
 | `docs/DISTRIBUTION.md` | Framework/user-content boundary classification |
+| `docs/MEMORY-ARCHITECTURE.md` | Agent memory system: persistence types, data flow, known gaps |
 | `scripts/doctor.sh` | Local diagnostic script (standalone) |
 
 ### Slash Commands

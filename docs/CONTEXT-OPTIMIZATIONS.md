@@ -3,6 +3,8 @@
 This document describes the context engineering strategy behind this
 project's agent configuration. It covers why these optimizations exist,
 the failure modes they address, and the principles that guided the work.
+For how these principles apply to agent memory and persistence, see
+[MEMORY-ARCHITECTURE.md](MEMORY-ARCHITECTURE.md).
 
 ---
 

@@ -35,7 +35,7 @@ Run the automated test suite:
 | Test | Description | Pass Criteria |
 |------|-------------|---------------|
 | 2.1 | Branch protection | Main branch has active protection ruleset |
-| 2.2 | Settings deny rules | settings.template.json contains merge deny rule |
+| 2.2 | Settings deny rules | settings.template.json contains `Bash(gh pr merge:*)` deny rule |
 
 #### Category 3: Documentation Verification (3 tests)
 
@@ -172,7 +172,7 @@ These scenarios require human verification and cannot be fully automated.
 {
   "permissions": {
     "deny": [
-      "mcp__github__merge_pull_request"
+      "Bash(gh pr merge:*)"
     ]
   }
 }

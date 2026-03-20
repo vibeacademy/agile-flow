@@ -24,24 +24,6 @@
       "WebFetch(domain:docs.anthropic.com)",
       "WebFetch(domain:npmjs.com)",
       "WebSearch",
-      "mcp__github__search_issues",
-      "mcp__github__get_issue",
-      "mcp__github__get_issue_comments",
-      "mcp__github__add_issue_comment",
-      "mcp__github__list_issues",
-      "mcp__github__update_issue",
-      "mcp__github__create_issue",
-      "mcp__github__create_pull_request",
-      "mcp__github__get_pull_request",
-      "mcp__github__get_pull_request_files",
-      "mcp__github__get_pull_request_status",
-      "mcp__github__get_pull_request_comments",
-      "mcp__github__get_pull_request_reviews",
-      "mcp__github__create_pull_request_review",
-      "mcp__github__list_pull_requests",
-      "mcp__github__get_file_contents",
-      "mcp__github__list_commits",
-      "mcp__github__search_code",
       "mcp__memory__create_entities",
       "mcp__memory__create_relations",
       "mcp__memory__search_nodes",
@@ -63,18 +45,17 @@
       "Read(*secret*)",
       "Write(.env)",
       "Write(.env.*)",
-      "mcp__github__merge_pull_request"
+      "Bash(gh pr merge:*)"
     ],
     "ask": []
   },
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
-    "github",
     "memory",
     "sequential-thinking"
   ],
   "_comments": {
-    "deny_merge": "IMPORTANT: mcp__github__merge_pull_request is intentionally DENIED to enforce trunk-based development workflow. Only humans can merge PRs. Agents can review (mcp__github__create_pull_request_review) but cannot finalize merges.",
+    "deny_merge": "IMPORTANT: Bash(gh pr merge:*) is intentionally DENIED to enforce trunk-based development workflow. Only humans can merge PRs. Agents can review (gh pr review) but cannot finalize merges.",
     "deny_secrets": "Secret files (.env, *.key, credentials) are denied to prevent accidental exposure of sensitive data.",
     "bot_accounts": "This template assumes separate bot accounts for worker and reviewer agents. See .claude/README.md for setup instructions."
   }

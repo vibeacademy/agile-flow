@@ -341,15 +341,8 @@ if [ -f ".mcp.json" ]; then
     pass "MCP Config" ".mcp.json exists"
 
     if ! JQ_CMD=$(resolve_cmd jq); then
-        skip "MCP Config" "Content checks (github server, memory server, npx path)" "jq not installed"
+        skip "MCP Config" "Content checks (memory server, npx path)" "jq not installed"
     else
-        # github server (FAIL)
-        if "$JQ_CMD" -e '.mcpServers.github' .mcp.json &>/dev/null; then
-            pass "MCP Config" "github server configured"
-        else
-            fail "MCP Config" "github server missing from .mcp.json" "Run bootstrap.sh Phase 0 or add github server manually"
-        fi
-
         # memory server (WARN)
         if "$JQ_CMD" -e '.mcpServers.memory' .mcp.json &>/dev/null; then
             pass "MCP Config" "memory server configured"
@@ -358,7 +351,7 @@ if [ -f ".mcp.json" ]; then
         fi
 
         # npx path resolves (WARN)
-        mcp_npx_path=$("$JQ_CMD" -r '.mcpServers.github.command // empty' .mcp.json 2>/dev/null)
+        mcp_npx_path=$("$JQ_CMD" -r '.mcpServers.memory.command // empty' .mcp.json 2>/dev/null)
         if [ -n "$mcp_npx_path" ]; then
             if resolve_cmd "$mcp_npx_path" &>/dev/null; then
                 pass "MCP Config" "npx command in .mcp.json resolves: $mcp_npx_path"
@@ -377,7 +370,7 @@ else
     fail "MCP Config" ".mcp.json not found" "Run bootstrap.sh Phase 0 to create it"
 fi
 
-# GITHUB_PERSONAL_ACCESS_TOKEN (FAIL)
+# GITHUB_PERSONAL_ACCESS_TOKEN (WARN — optional, only needed for direct GraphQL API calls)
 if [ -n "${GITHUB_PERSONAL_ACCESS_TOKEN:-}" ]; then
     # Mask the token in output — guard against short tokens
     if [ ${#GITHUB_PERSONAL_ACCESS_TOKEN} -ge 12 ]; then
@@ -387,28 +380,7 @@ if [ -n "${GITHUB_PERSONAL_ACCESS_TOKEN:-}" ]; then
     fi
     pass "MCP Config" "GITHUB_PERSONAL_ACCESS_TOKEN set ($token_preview)"
 else
-    fail "MCP Config" "GITHUB_PERSONAL_ACCESS_TOKEN not set" "export GITHUB_PERSONAL_ACCESS_TOKEN=ghp_... (needs repo + project + workflow scopes)"
-fi
-
-# Token scope validation (WARN per missing scope)
-if [ -n "${GITHUB_PERSONAL_ACCESS_TOKEN:-}" ] && GH_CMD=$(resolve_cmd gh); then
-    # gh api returns X-OAuth-Scopes in stderr via -i; extract from response headers
-    token_scopes=$(GH_TOKEN="$GITHUB_PERSONAL_ACCESS_TOKEN" "$GH_CMD" api -i user 2>/dev/null \
-        | grep -i '^x-oauth-scopes:' \
-        | sed 's/^[^:]*: //' \
-        | tr -d '\r')
-
-    if [ -n "$token_scopes" ]; then
-        for required_scope in repo project workflow; do
-            if echo "$token_scopes" | grep -qw "$required_scope"; then
-                pass "MCP Config" "Token has '$required_scope' scope"
-            else
-                warn "MCP Config" "Token missing '$required_scope' scope" "Add '$required_scope' at GitHub > Settings > Developer Settings > PAT"
-            fi
-        done
-    else
-        skip "MCP Config" "Token scope validation" "Could not read scopes from GitHub API (token may be fine-grained)"
-    fi
+    skip "MCP Config" "GITHUB_PERSONAL_ACCESS_TOKEN not set" "Optional — gh auth handles GitHub access"
 fi
 
 # ═══════════════════════════════════════════════════════════════════

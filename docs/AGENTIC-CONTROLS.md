@@ -57,10 +57,10 @@ correct account before PR operations.
 
 ---
 
-## Layer 2: MCP Permission Boundaries
+## Layer 2: Claude Code Permission Boundaries
 
-Claude Code's MCP (Model Context Protocol) framework enforces tool-level
-access control through `.claude/settings.template.json`.
+Claude Code enforces tool-level access control through
+`.claude/settings.template.json`.
 
 ### Explicit Deny Rules
 
@@ -73,7 +73,7 @@ access control through `.claude/settings.template.json`.
   "Read(*secret*)",
   "Write(.env)",
   "Write(.env.*)",
-  "mcp__github__merge_pull_request"
+  "Bash(gh pr merge:*)"
 ]
 ```
 
@@ -83,10 +83,10 @@ access control through `.claude/settings.template.json`.
   or key files. This prevents accidental exposure of API keys, database URLs,
   and other secrets in commits, PR descriptions, or log output.
 
-- **Merge prohibition**: The `mcp__github__merge_pull_request` tool is denied
-  at the framework level. Even if an agent's instructions say "merge", the
-  platform will block the API call. This is the hard enforcement behind the
-  "only humans merge" rule.
+- **Merge prohibition**: The `Bash(gh pr merge:*)` pattern is denied at the
+  framework level. Even if an agent's instructions say "merge", the platform
+  will block the `gh pr merge` command. This is the hard enforcement behind
+  the "only humans merge" rule.
 
 **Why deny rules beat allow rules**: An allow-list can have gaps. A deny rule
 on merge is explicit and survives any future changes to the allow list.
@@ -331,8 +331,8 @@ of the others:
 Layer 1 (Platform)     Hard boundary. Cannot be bypassed by agents.
                        Weakness: Only covers merge and push operations.
     |
-Layer 2 (MCP Deny)     Extends platform controls to secrets and specific tools.
-                       Weakness: Only covers enumerated tools.
+Layer 2 (Deny Rules)   Extends platform controls to secrets and specific commands.
+                       Weakness: Only covers enumerated patterns.
     |
 Layer 3 (Agent Policy) Covers nuanced behavioral rules and edge cases.
                        Weakness: Soft enforcement (prompt-based).
@@ -372,7 +372,7 @@ The inner layers handle what the platform cannot.
 | Layer | Controls | Enforcement | Timing |
 |-------|----------|-------------|--------|
 | 1. Platform | Branch protection, account separation | Hard (GitHub) | Always |
-| 2. MCP Deny | Secret access block, merge block | Hard (framework) | Tool invocation |
+| 2. Deny Rules | Secret access block, merge block | Hard (framework) | Tool invocation |
 | 3. Agent Policy | NON-NEGOTIABLE PROTOCOL, three-stage workflow | Soft (prompt) | Agent execution |
 | 4. CI/CD | Policy linter, tests, coverage | Hard (blocks merge) | Every PR |
 | 5. Pre-Push | Lint, tests (language auto-detected) | Hard (blocks push) | Every push |

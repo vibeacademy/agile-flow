@@ -35,10 +35,10 @@ cp .claude/settings.template.json .claude/settings.local.json
 
 ### IMPORTANT: Security Restrictions
 
-The template intentionally **EXCLUDES** `mcp__github__merge_pull_request` permission. This enforces the trunk-based development workflow where:
+The template intentionally **DENIES** `Bash(gh pr merge:*)`. This enforces the trunk-based development workflow where:
 
-- Agents can **create** PRs (github-ticket-worker)
-- Agents can **review** PRs (pr-reviewer)
+- Agents can **create** PRs via `gh pr create` (github-ticket-worker)
+- Agents can **review** PRs via `gh pr review` (pr-reviewer)
 - Only **humans** can **merge** PRs
 
 This separation ensures quality control and prevents accidental merges.
@@ -159,13 +159,6 @@ gh auth switch --user {bot-username}
 
 # Verify current account
 gh auth status
-```
-
-**Environment Variables:**
-```bash
-# Add to ~/.zshrc or ~/.bashrc (DO NOT commit to git)
-export GITHUB_WORKER_TOKEN="ghp_xxxxx"
-export GITHUB_REVIEWER_TOKEN="ghp_xxxxx"
 ```
 
 **IMPORTANT Security Notes:**

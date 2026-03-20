@@ -605,17 +605,13 @@ phase0_environment() {
     if [ -f ".mcp.json" ]; then
         # Validate that required servers are present
         local mcp_valid=true
-        if ! grep -q '"github"' .mcp.json 2>/dev/null; then
-            print_warning ".mcp.json is missing the 'github' server (required)."
-            mcp_valid=false
-        fi
         if ! grep -q '"memory"' .mcp.json 2>/dev/null; then
             print_warning ".mcp.json is missing the 'memory' server (required)."
             mcp_valid=false
         fi
 
         if [ "$mcp_valid" = true ]; then
-            print_success ".mcp.json exists with required servers (github, memory)."
+            print_success ".mcp.json exists with required servers (memory)."
         else
             echo ""
             echo "  Your .mcp.json appears to be stale or incomplete."
@@ -644,13 +640,6 @@ phase0_environment() {
             cat > .mcp.json << 'MCPEOF'
 {
   "mcpServers": {
-    "github": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-github"],
-      "env": {
-        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}"
-      }
-    },
     "memory": {
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-memory"]
@@ -677,25 +666,11 @@ MCPEOF
     echo ""
     echo "  Server                Required?   Token Needed"
     echo "  ────────────────────  ─────────   ────────────────────────────────"
-    echo "  github                REQUIRED    GITHUB_PERSONAL_ACCESS_TOKEN"
-    echo "                                    (needs 'repo' + 'project' + 'workflow' scopes)"
     echo "  memory                REQUIRED    none"
     echo "  sequential-thinking   optional    none"
     echo ""
-    echo "  To set your token, add this to your shell profile:"
-    echo "    export GITHUB_PERSONAL_ACCESS_TOKEN=ghp_xxxxx"
+    echo "  GitHub operations use the gh CLI (authenticated in Steps 3-5 above)."
     echo ""
-    echo "  Create a classic PAT at https://github.com/settings/tokens"
-    echo "  and check the 'repo', 'project', and 'workflow' scope boxes."
-    echo ""
-
-    if [ -n "$GITHUB_PERSONAL_ACCESS_TOKEN" ]; then
-        print_success "GITHUB_PERSONAL_ACCESS_TOKEN is set."
-    else
-        print_warning "GITHUB_PERSONAL_ACCESS_TOKEN is not set."
-        echo "  The github MCP server will not work without it."
-        echo "  Set it now or add it to your shell profile before running Claude Code."
-    fi
 
     # -----------------------------------------------------------------------
     #  Summary

@@ -91,48 +91,27 @@ You should see your token printed back.
 
 ## Step 2b: Configure Claude Code MCP Servers
 
-Claude Code uses MCP (Model Context Protocol) servers to interact with
-GitHub, persist agent memory, and perform structured reasoning. The
-bootstrap wizard creates a `.mcp.json` file for you, but the GitHub
-server requires a personal access token.
-
-### Create your `GITHUB_PERSONAL_ACCESS_TOKEN`
-
-1. Go to <https://github.com/settings/tokens>.
-2. Click **"Generate new token (classic)"**.
-3. Check the **`repo`**, **`project`**, and **`workflow`** scope boxes.
-   - `repo` -- lets agents read/write code, issues, and pull requests.
-   - `project` -- lets agents move tickets on the project board.
-   - `workflow` -- lets agents push changes to `.github/workflows/` files.
-4. Click **Generate token** and copy it.
-5. Add it to your shell profile:
-
-```bash
-echo 'export GITHUB_PERSONAL_ACCESS_TOKEN=ghp_xxxxx' >> ~/.zshrc
-source ~/.zshrc
-```
+Claude Code uses MCP (Model Context Protocol) servers for agent memory
+and structured reasoning. The bootstrap wizard creates a `.mcp.json`
+file for you. GitHub operations use the `gh` CLI (configured in Step 2),
+not MCP.
 
 ### MCP Servers
 
 | Server | Required? | What It Does | Token |
 |--------|-----------|--------------|-------|
-| `github` | Yes | Issue/PR management, project board | `GITHUB_PERSONAL_ACCESS_TOKEN` |
 | `memory` | Yes | Agent context persistence across sessions | none |
 | `sequential-thinking` | No | Structured reasoning for complex tasks | none |
 
 ### Verify MCP is working
 
 After running `claude` for the first time, you should see MCP servers
-listed in the startup output. If the github server fails to connect,
-check that your token is exported in the current terminal session:
-
-```bash
-echo $GITHUB_PERSONAL_ACCESS_TOKEN
-```
+listed in the startup output. Run `/mcp` inside Claude Code to confirm
+servers are connected.
 
 > **Bot accounts**: If you are using separate worker and reviewer bot
-> accounts, each bot's PAT also needs `repo` + `project` + `workflow`
-> scopes. See `.claude/README.md` for full bot account setup.
+> accounts, each needs `gh auth login`. See `.claude/README.md` for
+> full bot account setup.
 
 ---
 

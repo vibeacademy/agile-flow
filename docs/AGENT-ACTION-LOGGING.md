@@ -41,7 +41,7 @@ Each agent action is logged in JSON Lines format (one JSON object per line):
   "timestamp": "2025-11-28T08:10:00.000Z",
   "agent": "github-actions",
   "session_id": "workflow-run-12345",
-  "action": "mcp__github__create_pull_request_review",
+  "action": "gh pr review",
   "context": {
     "pr_number": 123,
     "repo": "your-org/your-repo",

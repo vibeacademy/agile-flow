@@ -68,24 +68,23 @@ The `.claude/hooks/ensure-github-account.sh` hook auto-switches accounts:
 - **Worker** (`AGILE_FLOW_WORKER_ACCOUNT`, default: `va-worker`) — PR creation
 - **Reviewer** (`AGILE_FLOW_REVIEWER_ACCOUNT`, default: `va-reviewer`) — PR reviews
 
-### MCP Configuration
+### GitHub CLI (`gh`)
 
-Configure in `.claude/settings.local.json`. See `.claude/settings.template.json`
-for the deny rules and allowed tools.
+Agents use the `gh` CLI for all GitHub operations (issues, PRs, reviews,
+board ops). Each bot account authenticates via `gh auth login` and the
+`.claude/hooks/ensure-github-account.sh` hook switches to the correct
+account automatically before PR creation and review operations.
+
+### MCP Servers
 
 MCP servers are defined in `.mcp.json` (project root). The bootstrap
-wizard creates this file automatically.
+wizard creates this file automatically. Configure allowed tools in
+`.claude/settings.local.json` (see `.claude/settings.template.json`).
 
-| Server | Required | Token | Scopes |
-|--------|----------|-------|--------|
-| `github` | Yes | `GITHUB_PERSONAL_ACCESS_TOKEN` | `repo` + `project` + `workflow` |
-| `memory` | Yes | none | -- |
-| `sequential-thinking` | No | none | -- |
-
-The `GITHUB_PERSONAL_ACCESS_TOKEN` must be a classic PAT with `repo`,
-`project`, and `workflow` scopes, or a fine-grained PAT with Contents,
-Issues, Pull requests, Metadata (read), Projects, and Workflows
-permissions.
+| Server | Required | Token |
+|--------|----------|-------|
+| `memory` | Yes | none |
+| `sequential-thinking` | No | none |
 
 ---
 

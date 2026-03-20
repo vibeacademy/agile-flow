@@ -63,7 +63,7 @@ Agile Flow is a **workflow template**, not a full application. You provide:
 
 - [Claude Code](https://claude.ai/code) CLI installed
 - GitHub repository with project board
-- Node.js 18+ (for MCP servers)
+- Node.js 18+ (for MCP servers: memory, sequential-thinking)
 
 ## How It Works: Progressive Refinement
 
@@ -183,53 +183,40 @@ You'll need:
 - A GitHub repository
 - Permission to create project boards
 - Permission to configure branch protection
-- A GitHub personal access token (for MCP)
+- GitHub accounts authenticated via `gh auth login`
 
-#### Creating a GitHub Personal Access Token
+#### Authenticating with GitHub
 
-1. Go to **GitHub Settings** → **Developer settings** → **Personal access tokens** → **Fine-grained tokens**
-   - Direct link: https://github.com/settings/tokens?type=beta
-
-2. Click **Generate new token**
-
-3. Configure the token:
-   - **Token name:** `agile-flow` (or your project name)
-   - **Expiration:** Choose based on your security requirements (90 days recommended)
-   - **Repository access:** Select "Only select repositories" and choose your project repo
-
-4. Set **Repository permissions:**
-   | Permission | Access Level | Why Needed |
-   |------------|--------------|------------|
-   | Contents | Read and write | Create branches, push commits |
-   | Issues | Read and write | Create/update tickets |
-   | Pull requests | Read and write | Create PRs, add comments |
-   | Projects | Read and write | Manage project board columns |
-   | Metadata | Read-only | Required for API access |
-
-5. Click **Generate token** and copy the token immediately (you won't see it again)
-
-#### Configuring the Token
-
-Add to your shell profile (`~/.zshrc`, `~/.bashrc`, etc.):
+Agile Flow uses the `gh` CLI for all GitHub operations. Authenticate
+each account (human + bot accounts) using the `gh` keyring:
 
 ```bash
-export GITHUB_PERSONAL_ACCESS_TOKEN="github_pat_xxxxxxxxxxxx"
-source ~/.zshrc
+gh auth login          # Human account (for merging PRs)
+gh auth login          # Worker bot account (for creating PRs)
+gh auth login          # Reviewer bot account (for reviewing PRs)
 ```
 
-The bootstrap wizard uses this token to configure MCP. See
+Each account needs a PAT with these permissions:
+
+| Permission | Access Level | Why Needed |
+|------------|--------------|------------|
+| Contents | Read and write | Create branches, push commits |
+| Issues | Read and write | Create/update tickets |
+| Pull requests | Read and write | Create PRs, add comments |
+| Projects | Read and write | Manage project board columns |
+| Metadata | Read-only | Required for API access |
+
+The bootstrap wizard walks you through this. See
 [docs/GETTING-STARTED.md](./docs/GETTING-STARTED.md#step-2-set-up-github-access)
 for detailed setup options.
 
-### MCP Servers (Required)
+### MCP Servers
 
-Claude Code uses MCP (Model Context Protocol) servers to access GitHub,
-persist agent memory, and structure complex reasoning. You need these
-three servers:
+Claude Code uses MCP (Model Context Protocol) servers for agent memory
+and structured reasoning. GitHub operations use the `gh` CLI instead.
 
 | Server | Package | Required | Purpose |
 |--------|---------|----------|---------|
-| `github` | `@modelcontextprotocol/server-github` | Yes | Issue/PR/project board operations |
 | `memory` | `@modelcontextprotocol/server-memory` | Yes | Persistent agent context across sessions |
 | `sequential-thinking` | `@modelcontextprotocol/server-sequential-thinking` | Recommended | Structured multi-step reasoning |
 
@@ -243,13 +230,6 @@ create it manually in your project root:
 ```json
 {
   "mcpServers": {
-    "github": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-github"],
-      "env": {
-        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}"
-      }
-    },
     "memory": {
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-memory"]
@@ -279,7 +259,7 @@ it doesn't exist, create it with the same JSON shown above.
 #### Verifying MCP
 
 In any Claude Code session (terminal or desktop), run `/mcp` to confirm
-all three servers are connected.
+servers are connected.
 
 ## Customization
 

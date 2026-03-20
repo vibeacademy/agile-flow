@@ -28,12 +28,6 @@ tool_command=$(echo "$input" | jq -r '.tool_input.command // empty')
 # Determine required account based on tool
 required_account=""
 case "$tool_name" in
-  *create_pull_request|*update_pull_request_branch)
-    required_account="$WORKER_ACCOUNT"
-    ;;
-  *create_pull_request_review)
-    required_account="$REVIEWER_ACCOUNT"
-    ;;
   Bash)
     case "$tool_command" in
       *"gh pr create"*)

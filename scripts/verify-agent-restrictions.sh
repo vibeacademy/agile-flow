@@ -277,7 +277,7 @@ if should_run_test "permissions"; then
 
   if [ -f ".claude/settings.template.json" ]; then
     if grep -q '"deny"' .claude/settings.template.json; then
-      if grep -q "merge_pull_request" .claude/settings.template.json; then
+      if grep -q "gh pr merge" .claude/settings.template.json; then
         log_success "settings.template.json has merge deny rule"
       else
         log_warning "settings.template.json missing explicit merge deny rule"

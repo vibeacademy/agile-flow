@@ -262,6 +262,14 @@ signals while doing the wrong thing.
    it, GitHub silently shows "0 jobs" with a vague error. This can go undetected
    for weeks.
 
+6. **Magic link auth needs two callback handlers.** Before implementing auth,
+   read Pattern #24 in `docs/PATTERN-LIBRARY.md`. Magic links put tokens in
+   the URL hash fragment (`#access_token=...`) which never reaches the server.
+   You need BOTH `app/api/auth/callback/route.ts` (server-side, for code/PKCE)
+   AND `app/(auth)/auth/callback/page.tsx` (client-side, for hash fragments).
+   Without the client-side page, auth silently fails — the user clicks the
+   magic link, lands on the callback URL, and gets sent back to login.
+
 ## Decision-Making Framework
 
 - **When uncertain about requirements**: Ask clarifying questions in the ticket before implementing

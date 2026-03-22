@@ -31,6 +31,7 @@
 21. [Python: Async Functions That Block the Event Loop](#21-python-async-functions-that-block-the-event-loop)
 22. [Python: HTML Form Empty Values vs Defaults](#22-python-html-form-empty-values-vs-defaults)
 23. [Server-Side URLs: Never Hardcode Origins](#23-server-side-urls-never-hardcode-origins)
+24. [Magic Link Auth: Complete Implementation (Next.js)](#24-magic-link-auth-complete-implementation-nextjs)
 
 ---
 
@@ -728,6 +729,407 @@ const origin = getExternalOrigin(request);
 
 ---
 
+## 24. Magic Link Auth: Complete Implementation (Next.js)
+
+This is not a gotcha pattern — it's a **complete implementation recipe** for
+magic link authentication with Supabase in Next.js App Router. Every workshop
+participant needs auth, and the architecture has exactly one correct shape.
+
+### Why this recipe exists
+
+Magic link auth requires **two callback handlers** — a server-side API route
+and a client-side page. Most Supabase docs only show the server-side route.
+Without the client-side page, magic links redirect correctly but the user
+ends up back on the login page with no error. This is because Supabase puts
+tokens in the URL **hash fragment** (`#access_token=...`), which never reaches
+the server.
+
+### Architecture
+
+```
+User enters email on /login
+  → Supabase sends magic link email
+  → emailRedirectTo: window.location.origin + "/auth/callback"
+
+User clicks magic link
+  → Browser navigates to /auth/callback#access_token=...&refresh_token=...
+  → Client-side page detects hash fragment
+  → Supabase JS client exchanges token via onAuthStateChange
+  → Redirects to / (dashboard)
+
+Every subsequent request
+  → Middleware refreshes session via supabase.auth.getUser()
+  → Unauthenticated users redirected to /login
+  → Auth routes (/login, /auth/callback, etc.) skip redirect check
+```
+
+### Required files
+
+```
+lib/supabase/client.ts          # Browser client (createBrowserClient)
+lib/supabase/server.ts          # Server client with cookie handling
+lib/supabase/middleware.ts       # Session refresh + route protection
+middleware.ts                    # Next.js middleware entry point
+app/api/auth/callback/route.ts   # Server-side: handles code/token_hash params
+app/(auth)/auth/callback/page.tsx # Client-side: handles hash fragment tokens
+app/(auth)/login/page.tsx         # Login form (email input → OTP)
+app/(auth)/check-email/page.tsx   # Confirmation page after sending link
+app/(auth)/layout.tsx             # Auth layout (no app shell)
+```
+
+### Dependencies
+
+```bash
+npm install @supabase/ssr @supabase/supabase-js
+```
+
+### Environment variables
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```
+
+These are the only variables needed for auth. No `SUPABASE_SERVICE_ROLE_KEY`
+required on the client side. The preview-deploy workflow handles injecting
+branch-specific values automatically.
+
+### File 1: Browser client — `lib/supabase/client.ts`
+
+```typescript
+import { createBrowserClient as createClient } from "@supabase/ssr";
+
+export function createBrowserClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+}
+```
+
+### File 2: Server client — `lib/supabase/server.ts`
+
+```typescript
+import { createServerClient as createClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
+
+export async function createServerClient() {
+  const cookieStore = await cookies();
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          } catch {
+            // Ignored in Server Components where cookies cannot be set
+          }
+        },
+      },
+    }
+  );
+}
+```
+
+### File 3: Middleware logic — `lib/supabase/middleware.ts`
+
+Critical details:
+- Must allowlist auth routes or you get infinite redirects
+- Gracefully skip if Supabase env vars aren't set (local dev without secrets)
+- Redirect authenticated users away from auth pages
+
+```typescript
+import { createServerClient } from "@supabase/ssr";
+import { NextResponse, type NextRequest } from "next/server";
+
+const AUTH_ROUTES = ["/login", "/signup", "/check-email", "/auth/callback"];
+
+export async function updateSession(request: NextRequest) {
+  let supabaseResponse = NextResponse.next({ request });
+
+  // Skip if Supabase not configured
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    return supabaseResponse;
+  }
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+          supabaseResponse = NextResponse.next({ request });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          );
+        },
+      },
+    }
+  );
+
+  const { data: { user } } = await supabase.auth.getUser();
+  const path = request.nextUrl.pathname;
+  const isAuthRoute = AUTH_ROUTES.some((route) => path.startsWith(route));
+
+  if (!user && !isAuthRoute) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    return NextResponse.redirect(url);
+  }
+
+  if (user && isAuthRoute) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/";
+    return NextResponse.redirect(url);
+  }
+
+  return supabaseResponse;
+}
+```
+
+### File 4: Middleware entry point — `middleware.ts`
+
+```typescript
+import { updateSession } from "@/lib/supabase/middleware";
+import { type NextRequest } from "next/server";
+
+export async function middleware(request: NextRequest) {
+  return await updateSession(request);
+}
+
+export const config = {
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|api/health|api/error-events).*)",
+  ],
+};
+```
+
+### File 5: Server-side callback — `app/api/auth/callback/route.ts`
+
+Handles `code` (PKCE/OAuth) and `token_hash` (OTP) query parameters.
+Uses reverse proxy headers for correct redirect origin (see Pattern #10).
+
+```typescript
+import { NextResponse } from "next/server";
+import { createServerClient } from "@/lib/supabase/server";
+
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const code = searchParams.get("code");
+  const token_hash = searchParams.get("token_hash");
+  const type = searchParams.get("type");
+
+  // Render reverse proxy: detect actual public origin
+  const host = request.headers.get("x-forwarded-host") || request.headers.get("host");
+  const proto = request.headers.get("x-forwarded-proto") || "https";
+  const origin = `${proto}://${host}`;
+
+  const supabase = await createServerClient();
+
+  if (code) {
+    await supabase.auth.exchangeCodeForSession(code);
+  } else if (token_hash && type) {
+    await supabase.auth.verifyOtp({ token_hash, type: type as "magiclink" });
+  }
+
+  return NextResponse.redirect(origin);
+}
+```
+
+### File 6: Client-side callback — `app/(auth)/auth/callback/page.tsx`
+
+**This is the critical file most implementations miss.** Magic links put
+tokens in the URL hash fragment (`#access_token=...`). Hash fragments never
+reach the server, so this client-side page must handle the token exchange.
+
+```typescript
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { createBrowserClient } from "@/lib/supabase/client";
+
+export default function AuthCallbackPage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    const supabase = createBrowserClient();
+
+    // Supabase JS client automatically detects hash fragment tokens
+    supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_IN") {
+        router.push("/");
+        router.refresh();
+      }
+    });
+
+    // Surface errors from the hash
+    const hash = window.location.hash.substring(1);
+    if (hash) {
+      const params = new URLSearchParams(hash);
+      const error = params.get("error_description");
+      if (error) {
+        router.push(`/login?error=${encodeURIComponent(error)}`);
+      }
+    }
+  }, [router]);
+
+  return (
+    <div className="min-h-screen flex items-center justify-center px-4">
+      <div className="text-center">
+        <div className="mx-auto w-12 h-12 mb-4 animate-spin rounded-full border-4 border-muted border-t-primary" />
+        <h1 className="text-xl font-semibold">Signing you in...</h1>
+        <p className="text-muted-foreground mt-2">
+          Please wait while we verify your identity.
+        </p>
+      </div>
+    </div>
+  );
+}
+```
+
+### File 7: Login page — `app/(auth)/login/page.tsx`
+
+Key detail: `emailRedirectTo` must use `window.location.origin` so it works
+in both production and preview environments (see Pattern #23).
+
+```typescript
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { createBrowserClient } from "@/lib/supabase/client";
+
+export default function LoginPage() {
+  const [email, setEmail] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+
+    const supabase = createBrowserClient();
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        // CRITICAL: use origin so this works in preview environments
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+
+    if (error) {
+      setError(error.message);
+      setLoading(false);
+      return;
+    }
+
+    router.push(`/check-email?email=${encodeURIComponent(email)}`);
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center px-4">
+      <form onSubmit={handleSubmit} className="w-full max-w-sm flex flex-col gap-4">
+        <h1 className="text-2xl font-semibold">Log in</h1>
+        <p className="text-muted-foreground">
+          Enter your email and we will send you a magic link.
+        </p>
+        <input
+          type="email"
+          placeholder="you@example.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          className="border rounded px-3 py-2"
+        />
+        {error && <p className="text-sm text-destructive">{error}</p>}
+        <button type="submit" disabled={loading}
+          className="bg-primary text-primary-foreground rounded px-4 py-2">
+          {loading ? "Sending link..." : "Send magic link"}
+        </button>
+      </form>
+    </div>
+  );
+}
+```
+
+### File 8: Check email page — `app/(auth)/check-email/page.tsx`
+
+Note: `useSearchParams()` requires `<Suspense>` in App Router or static
+prerendering fails.
+
+```typescript
+"use client";
+
+import { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import Link from "next/link";
+
+function CheckEmailContent() {
+  const searchParams = useSearchParams();
+  const email = searchParams.get("email");
+
+  return (
+    <div className="min-h-screen flex items-center justify-center px-4">
+      <div className="w-full max-w-sm text-center">
+        <h1 className="text-2xl font-semibold">Check your email</h1>
+        <p className="text-muted-foreground mt-2">
+          We sent a confirmation link to{" "}
+          {email ? <span className="font-medium text-foreground">{email}</span> : "your email"}.
+        </p>
+        <p className="text-sm text-muted-foreground mt-4">
+          Click the link in your email to sign in.
+        </p>
+        <Link href="/login" className="text-sm text-primary hover:underline mt-4 block">
+          Back to login
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+export default function CheckEmailPage() {
+  return (
+    <Suspense>
+      <CheckEmailContent />
+    </Suspense>
+  );
+}
+```
+
+### Cross-references
+
+- **Pattern #1** — Auth `site_url` must be base URL only when configuring preview environments
+- **Pattern #4** — Preview auth redirect URLs must include the callback path in `uri_allow_list`
+- **Pattern #10** — Server-side callback must use `X-Forwarded-Host`/`X-Forwarded-Proto`
+- **Pattern #23** — `emailRedirectTo` must use `window.location.origin`, never hardcoded
+
+### Common mistakes
+
+| Mistake | Symptom | Fix |
+|---------|---------|-----|
+| Missing client-side callback page | Magic link redirects to `/auth/callback`, user lands back on login | Add `app/(auth)/auth/callback/page.tsx` |
+| Using `request.url` in server callback | Redirect goes to `localhost:10000` in Render | Read `x-forwarded-host` and `x-forwarded-proto` headers |
+| Hardcoded `emailRedirectTo` URL | Auth works in prod, fails in preview | Use `window.location.origin` |
+| Missing `<Suspense>` around `useSearchParams()` | Build fails with prerendering error | Wrap component in `<Suspense>` |
+| Auth routes not in middleware allowlist | Infinite redirect loop on `/login` | Add all auth paths to `AUTH_ROUTES` array |
+| Supabase env vars missing in local dev | Middleware crashes on startup | Add graceful skip when vars not set |
+
+---
+
 ## Quick Reference: The Preview Environment Checklist
 
 When setting up ephemeral PR environments with Render + Supabase, verify:
@@ -742,3 +1144,6 @@ When setting up ephemeral PR environments with Render + Supabase, verify:
 - [ ] All optional secrets use `if: ${{ secrets.TOKEN != '' }}` gating
 - [ ] Migration filenames use timestamps, not sequential numbers
 - [ ] Next.js does NOT use `output: "standalone"`
+- [ ] Auth has both server-side API route AND client-side callback page
+- [ ] `emailRedirectTo` uses `window.location.origin` (not hardcoded)
+- [ ] Middleware allowlists auth routes (`/login`, `/auth/callback`, etc.)

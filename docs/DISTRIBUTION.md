@@ -118,6 +118,7 @@ Content **outside** markers in hybrid files is user-owned. Content
 | `docs/EPHEMERAL-PR-ENVIRONMENTS.md` | framework | Preview env docs | Overwrite |
 | `docs/FAQ.md` | framework | Common questions | Overwrite |
 | `docs/GETTING-STARTED.md` | framework | Onboarding guide | Overwrite |
+| `docs/UPGRADING.md` | framework | Upgrade guide for participants | Overwrite |
 | `docs/testing/agent-restriction-tests.md` | framework | Test documentation | Overwrite |
 | `docs/PRODUCT-REQUIREMENTS.md` | user-content | Bootstrap-generated, user-owned | Never touch |
 | `docs/PRODUCT-ROADMAP.md` | user-content | Bootstrap-generated, user-owned | Never touch |

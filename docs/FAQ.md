@@ -252,6 +252,17 @@ makes the final call.
 
 ---
 
+## "How do I upgrade to a newer version of Agile Flow?"
+
+Run `/upgrade` from Claude Code. This checks for a newer release, syncs
+framework files into your project, and opens a pull request for you to review.
+Your application code and configuration are never touched.
+
+For the full upgrade guide, alternative methods, and troubleshooting, see
+[UPGRADING.md](UPGRADING.md).
+
+---
+
 ## "Why did the agent create a branch?"
 
 When you run `/work-ticket`, the AI agent picks up the next task and starts

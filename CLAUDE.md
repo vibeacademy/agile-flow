@@ -214,4 +214,5 @@ approved, tests passing, no lint errors, PR merged to main.
 | `/architect-review` | Architectural guidance |
 | `/lock-scope` | Lock MVP scope |
 | `/doctor` | Environment health check (local + remote) |
+| `/upgrade` | Upgrade framework files to latest release |
 <!-- FRAMEWORK:END -->

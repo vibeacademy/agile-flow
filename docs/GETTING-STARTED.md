@@ -368,6 +368,9 @@ To see if a newer version is available, visit the
 The `/doctor` command also checks for updates automatically and will warn
 you if a newer version is available.
 
+To upgrade, run `/upgrade` from Claude Code. See [UPGRADING.md](UPGRADING.md)
+for the full upgrade guide, alternative methods, and troubleshooting.
+
 ---
 
 ## Next Steps

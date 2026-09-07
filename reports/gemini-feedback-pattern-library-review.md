@@ -1,3 +1,11 @@
+> **PROCESSED (2026-09-07, gh-gf-740)** — external review artifact, kept as
+> evidence. The corrections below landed in `docs/PATTERN-LIBRARY.md` (and
+> the propagated copy in `docs/PLATFORM-GUIDE.md`): #2 and #3 fixed per the
+> review; #18 clarified per the review; #14 the review's "functionally
+> correct" verdict was itself wrong (secrets are not readable in `if:`
+> conditionals at all) — the pattern was rewritten to the supported
+> env-mapping / probe-job mechanisms. Do not re-apply this review.
+
 Overall, the document is of high quality and contains many accurate and valuable patterns for the specified tech stack. The advice is specific, practical, and addresses real-world "gotchas". However, there are a few significant inaccuracies that should be corrected.
 
 ### Inaccurate Patterns

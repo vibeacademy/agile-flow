@@ -17,13 +17,29 @@
 #   3. Token lacks administration scope AND user is admin AND NOT Codespaces
 #      → generic 403 manual fallback.
 #
+# API: gembaflow_ruleset_post_failure <post_output>
+#
+# POST-failure classifier (gh-gf-697). On PUBLIC repos the read probe needs
+# no administration scope, so a Codespaces installation token passes the
+# probe and only the POST 403s — the "read gates write" assumption holds for
+# private repos only. Call this with the captured stderr/stdout of the
+# failed POST; zero extra API calls are made. Always returns 1 after
+# printing:
+#   - Branch 2 (Codespaces token-scope wall) when the output shows an
+#     HTTP 403 AND $CODESPACES=true.
+#   - The generic manual fallback (branch-3 posture) otherwise.
+#
 # Usage:
 #   # shellcheck source=scripts/lib/ruleset-probe.sh
 #   source "${BOOTSTRAP_DIR}/scripts/lib/ruleset-probe.sh"
 #   if gembaflow_ruleset_probe "${repo_slug}"; then
-#       # proceed with POST
+#       if post_output=$(gh api ... --method POST ... 2>&1); then
+#           # success
+#       else
+#           gembaflow_ruleset_post_failure "${post_output}"
+#       fi
 #   fi
-#   # on failure the function already printed the user-facing error
+#   # on failure the functions already printed the user-facing error
 
 # Colours: sourced scripts may already have these; guard with ${VAR:-} to
 # avoid unbound-variable errors when sourced in a bare shell.
@@ -31,6 +47,40 @@ _PROBE_RED="${RED:-\033[0;31m}"
 _PROBE_YELLOW="${YELLOW:-\033[1;33m}"
 _PROBE_CYAN="${CYAN:-\033[0;36m}"
 _PROBE_NC="${NC:-\033[0m}"
+
+# Branch 2 — Codespaces default installation token lacks administration scope.
+# Shared by the probe fast-fail (private repos, where the read 403s) and the
+# POST-failure handler (public repos, where the read succeeds without any
+# administration scope and only the POST 403s — gh-gf-697).
+# NOTE: this branch is the DEFAULT path once gfm-2mh/SEC-02 removes the
+# devcontainer permissions block. Write it as first-class UX — calm and
+# actionable; do NOT dump the raw 403 response.
+_gembaflow_ruleset_codespaces_wall() {
+    echo -e "${_PROBE_YELLOW}[!] Branch protection skipped — Codespaces token scope wall.${_PROBE_NC}"
+    echo ""
+    echo "    Your Codespace uses a GitHub App installation token. Its scopes"
+    echo "    come from devcontainer.json — not from your account permissions."
+    echo "    The default Codespace token does not include the administration"
+    echo "    scope needed to create rulesets via the API."
+    echo ""
+    echo "    To enable auto-ruleset creation, choose one of:"
+    echo ""
+    echo "    (a) Run bootstrap locally with a PAT that has the right scopes:"
+    echo "          gh auth login --scopes repo,workflow"
+    echo "          bash bootstrap.sh"
+    echo "        (Add  admin:org  if your fork lives in an org, not a personal account.)"
+    echo ""
+    echo "    (b) Configure a user-scoped PAT as a Codespaces secret and re-run:"
+    echo "          See docs/codespaces-secrets.md for step-by-step instructions."
+    echo "          Required PAT scopes: repo,workflow"
+    echo "          (Add  admin:org  for org-owned forks.)"
+    echo ""
+    echo "    Manual fallback (no PAT needed) — configure branch protection via GitHub UI:"
+    echo "      Settings > Rules > Rulesets > New ruleset"
+    echo "        - Name: Protect main"
+    echo "        - Target: main branch"
+    echo "        - Rules: Require pull request, Require status checks"
+}
 
 gembaflow_ruleset_probe() {
     local repo_slug="$1"
@@ -73,34 +123,8 @@ gembaflow_ruleset_probe() {
 
     # User IS admin — the token scope is the blocker.
     if [ "${CODESPACES:-}" = "true" ]; then
-        # Branch 2 — Codespaces default installation token lacks administration scope.
-        # NOTE: this branch is the DEFAULT path once gfm-2mh/SEC-02 removes the
-        # devcontainer permissions block. Write it as first-class UX — calm and
-        # actionable; do NOT dump the raw 403 response.
-        echo -e "${_PROBE_YELLOW}[!] Branch protection skipped — Codespaces token scope wall.${_PROBE_NC}"
-        echo ""
-        echo "    Your Codespace uses a GitHub App installation token. Its scopes"
-        echo "    come from devcontainer.json — not from your account permissions."
-        echo "    The default Codespace token does not include the administration"
-        echo "    scope needed to create rulesets via the API."
-        echo ""
-        echo "    To enable auto-ruleset creation, choose one of:"
-        echo ""
-        echo "    (a) Run bootstrap locally with a PAT that has the right scopes:"
-        echo "          gh auth login --scopes repo,workflow"
-        echo "          bash bootstrap.sh"
-        echo "        (Add  admin:org  if your fork lives in an org, not a personal account.)"
-        echo ""
-        echo "    (b) Configure a user-scoped PAT as a Codespaces secret and re-run:"
-        echo "          See docs/codespaces-secrets.md for step-by-step instructions."
-        echo "          Required PAT scopes: repo,workflow"
-        echo "          (Add  admin:org  for org-owned forks.)"
-        echo ""
-        echo "    Manual fallback (no PAT needed) — configure branch protection via GitHub UI:"
-        echo "      Settings > Rules > Rulesets > New ruleset"
-        echo "        - Name: Protect main"
-        echo "        - Target: main branch"
-        echo "        - Rules: Require pull request, Require status checks"
+        # Branch 2 — message shared with the POST-failure handler.
+        _gembaflow_ruleset_codespaces_wall
         return 1
     fi
 
@@ -113,6 +137,35 @@ gembaflow_ruleset_probe() {
     echo "      • Classic PAT missing the  admin:org  scope (org-owned repos)"
     echo "      • Repo plan does not support rulesets via API"
     echo ""
+    echo "    Manual fallback — configure branch protection via GitHub UI:"
+    echo "      Settings > Rules > Rulesets > New ruleset"
+    echo "        - Name: Protect main"
+    echo "        - Target: main branch"
+    echo "        - Rules: Require pull request, Require status checks"
+    return 1
+}
+
+# POST-failure classifier — see the header block for the public-repo rationale
+# (gh-gf-697). Takes the captured output (stdout+stderr) of the failed POST;
+# inspects it for an HTTP 403 marker instead of making any further API call.
+# Guardrails unchanged from #520/#694: never retry, never elevate, never
+# touch the POST payload.
+gembaflow_ruleset_post_failure() {
+    local post_output="${1:-}"
+
+    if [ "${CODESPACES:-}" = "true" ] \
+        && printf '%s' "$post_output" | grep -qi "HTTP 403"; then
+        # Branch 2 — the public-repo shape of the Codespaces token-scope wall:
+        # the read probe passed (public reads need no administration scope),
+        # but the installation token still cannot write rulesets.
+        _gembaflow_ruleset_codespaces_wall
+        return 1
+    fi
+
+    # Branch 3 posture — generic manual fallback (non-403 failure, or a 403
+    # outside Codespaces: race, plan restriction, fine-grained PAT read-only).
+    # Do not retry or elevate.
+    echo -e "${_PROBE_YELLOW}[!] Could not create ruleset automatically (POST failed after successful probe).${_PROBE_NC}"
     echo "    Manual fallback — configure branch protection via GitHub UI:"
     echo "      Settings > Rules > Rulesets > New ruleset"
     echo "        - Name: Protect main"

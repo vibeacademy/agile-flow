@@ -99,6 +99,14 @@ Verify or configure branch protection on `main`.
 >      permissions block — treat it as first-class UX.*
 >   3. Else → generic 403 manual-fallback.
 >
+> **Public-repo gap (gh-gf-697):** on PUBLIC repos the read probe needs no
+> `administration` scope, so the default Codespaces token passes the probe
+> and only the POST 403s ("read gates write" holds for private repos only).
+> Handle the POST failure too: capture the POST's output, and when it shows
+> an HTTP 403 AND `$CODESPACES = true`, emit the branch-2 message below
+> instead of the generic fallback — zero extra API calls; never retry the
+> POST or attempt to distinguish public/private via the API.
+>
 > **Branch 2 message (Codespaces — calm and actionable):**
 > > Ruleset creation skipped — your Codespace token does not include the
 > > `administration` scope. To enable auto-rulesets, either:

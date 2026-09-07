@@ -941,7 +941,14 @@ phase4_workflow() {
                 # and returns 1 when the token cannot create rulesets; on 0 the
                 # POST is safe to attempt.
                 if gembaflow_ruleset_probe "${repo_slug}"; then
-                    if gh api "repos/${repo_slug}/rulesets" \
+                    # Capture the POST's output (payload unchanged): on PUBLIC
+                    # repos the read probe passes without any administration
+                    # scope, so a Codespaces installation token gets here and
+                    # 403s on the POST — gembaflow_ruleset_post_failure routes
+                    # that case to the branch-2 Codespaces message with zero
+                    # extra API calls (gh-gf-697).
+                    local post_output
+                    if post_output=$(gh api "repos/${repo_slug}/rulesets" \
                         --method POST \
                         --field name="Protect main" \
                         --field target="branch" \
@@ -950,17 +957,15 @@ phase4_workflow() {
                         --field 'conditions[ref_name][exclude][]=' \
                         --field 'rules[][type]=pull_request' \
                         --field 'rules[][type]=required_status_checks' \
-                        &>/dev/null 2>&1; then
+                        2>&1); then
                         print_success "Branch protection ruleset created for main."
                     else
-                        # POST failed even though the probe passed (race or plan
-                        # restriction). Fall back to manual; do not retry.
-                        print_warning "Could not create ruleset automatically (POST failed after successful probe)."
-                        echo "  Manual fallback — configure branch protection via GitHub UI:"
-                        echo "    Settings > Rules > Rulesets > New ruleset"
-                        echo "      - Name: Protect main"
-                        echo "      - Target: main branch"
-                        echo "      - Rules: Require pull request, Require status checks"
+                        # POST failed even though the probe passed. The
+                        # classifier prints branch 2 (403 in Codespaces) or
+                        # the generic manual fallback; never retries. It
+                        # returns 1 by contract — || true keeps set -e from
+                        # aborting bootstrap on this non-fatal path.
+                        gembaflow_ruleset_post_failure "${post_output}" || true
                     fi
                 fi
                 # On probe failure gembaflow_ruleset_probe already printed the

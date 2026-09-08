@@ -34,10 +34,23 @@
 #   gembaflow_write_bootstrap_marker   — write the JSON file (exit 0 on write,
 #                                        1 when jq is unavailable)
 #   gembaflow_commit_bootstrap_marker  — commit the marker as its own commit
-#                                        ("chore(bootstrap): mark complete")
-#                                        and best-effort push; never fatal
+#                                        ("chore(bootstrap): mark complete"),
+#                                        push to the default branch, and on
+#                                        rejection (expected under the Phase-4
+#                                        ruleset) push to the well-known
+#                                        fallback branch; never fatal
 
 GEMBAFLOW_BOOTSTRAP_MARKER=".gembaflow-bootstrap-complete"
+
+# Well-known fallback branch for the marker push. The Phase-4 provisioning
+# ruleset (pull_request + required_status_checks, enforcement active, no
+# bypass actors) blocks direct pushes to refs/heads/main for ALL actors —
+# including the bootstrap flow itself, which creates that ruleset earlier in
+# the same phase. The ruleset's conditions cover only refs/heads/main, so
+# pushing the marker commit to this branch succeeds, and
+# scripts/workshop-fleet-check.sh reads it automatically when the
+# default-branch marker is absent. Keep in sync with FALLBACK_BRANCH there.
+GEMBAFLOW_MARKER_FALLBACK_BRANCH="gembaflow/bootstrap-marker"
 
 # Prints the bootstrap start time as an epoch, or nothing when no reliable
 # timing signal exists.
@@ -143,13 +156,22 @@ gembaflow_commit_bootstrap_marker() {
         fi
     fi
 
-    # Best-effort push so the marker reaches the fork's default branch on
-    # GitHub (the fleet-check fetch path). Branch protection or a detached
-    # remote can legitimately block this — warn, never fail bootstrap.
+    # Push so the marker reaches GitHub (the fleet-check fetch path). The
+    # default-branch push is EXPECTED to be rejected once the Phase-4
+    # provisioning ruleset exists (it blocks direct pushes to main for all
+    # actors — GitHub rulesets have no implicit admin exemption), so on
+    # rejection push the marker commit to the well-known fallback branch,
+    # which the ruleset's conditions do not cover. --force keeps
+    # re-bootstraps working when the fallback branch already exists with
+    # older history. Never fail bootstrap.
     local branch
     branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
-    if ! git push origin "${branch:-HEAD}" >/dev/null 2>&1; then
-        echo "bootstrap-marker: push failed — the completion marker is committed locally; push (or merge) it to the default branch so the workshop fleet-check can see it" >&2
+    if git push origin "${branch:-HEAD}" >/dev/null 2>&1; then
+        echo "bootstrap-marker: marker pushed to '${branch:-HEAD}' — fleet-check will report this fork GREEN"
+    elif git push --force origin "HEAD:refs/heads/${GEMBAFLOW_MARKER_FALLBACK_BRANCH}" >/dev/null 2>&1; then
+        echo "bootstrap-marker: default-branch push rejected (branch protection — expected under the Phase-4 ruleset); marker pushed to fallback branch '${GEMBAFLOW_MARKER_FALLBACK_BRANCH}'. The workshop fleet-check reads that branch automatically — no action needed."
+    else
+        echo "bootstrap-marker: push failed (default branch AND fallback branch '${GEMBAFLOW_MARKER_FALLBACK_BRANCH}') — the marker is committed locally and fleet-check will report YELLOW until a push succeeds. Check network/auth, then re-run: bash scripts/lib/bootstrap-marker.sh" >&2
     fi
     return 0
 }

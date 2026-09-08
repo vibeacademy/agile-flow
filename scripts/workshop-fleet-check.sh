@@ -5,13 +5,20 @@
 # state by fetching its committed `.gembaflow-bootstrap-complete` marker via
 # raw.githubusercontent.com (public forks — no auth required):
 #
-#   GREEN  {slug} (<duration>s, mode=<mode>[, workshop=<cohort>])
+#   GREEN  {slug} (<duration>s, mode=<mode>[, workshop=<cohort>][, marker on fallback branch])
 #   YELLOW {slug} (marker missing — bootstrap in progress?)
 #   RED    {slug} (fork not found)
 #
 # plus a stale bucket: with --since, a marker whose completed_at predates the
 # session start reports YELLOW as stale (a leftover from a previous session,
 # not this one).
+#
+# Fallback branch: the Phase-4 provisioning ruleset blocks direct pushes to
+# main for all actors, so bootstrap pushes the marker commit to the
+# well-known branch `gembaflow/bootstrap-marker` when the default-branch
+# push is rejected (scripts/lib/bootstrap-marker.sh). On a default-branch
+# marker 404 this script tries that branch before the repo-existence check;
+# a hit classifies GREEN with a "marker on fallback branch" annotation.
 #
 # Input (explicit list only — deliberately NO org-API enumeration, the
 # instructor controls the roster):
@@ -40,7 +47,7 @@
 set -u
 
 usage() {
-    sed -n '2,40p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '2,45p' "$0" | sed 's/^# \{0,1\}//'
 }
 
 err() { echo "workshop-fleet-check: $*" >&2; }
@@ -48,6 +55,9 @@ err() { echo "workshop-fleet-check: $*" >&2; }
 INPUT_FILE=""
 SINCE=""
 BRANCH="main"
+# Keep in sync with GEMBAFLOW_MARKER_FALLBACK_BRANCH in
+# scripts/lib/bootstrap-marker.sh.
+FALLBACK_BRANCH="gembaflow/bootstrap-marker"
 
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -130,6 +140,37 @@ emit_green()  { echo "GREEN $1 ($2)";  green=$((green + 1)); }
 emit_yellow() { echo "YELLOW $1 ($2)"; yellow=$((yellow + 1)); }
 emit_red()    { echo "RED $1 ($2)";    red=$((red + 1)); }
 
+# classify_marker_body <slug> [annotation] — classify a fetched marker (in
+# $tmp_body) as GREEN, YELLOW-stale, or YELLOW-unreadable. Shared by the
+# default-branch and fallback-branch fetch paths; a non-empty annotation is
+# appended to the GREEN detail (e.g. "marker on fallback branch").
+classify_marker_body() {
+    local slug=$1 annotation=${2:-}
+    local completed_at mode cohort duration completed_epoch detail
+
+    if ! jq -e . "$tmp_body" >/dev/null 2>&1; then
+        emit_yellow "$slug" "marker unreadable — invalid JSON"
+        return 0
+    fi
+    completed_at=$(jq -r '.completed_at // empty' "$tmp_body")
+    mode=$(jq -r '.mode // "?"' "$tmp_body")
+    cohort=$(jq -r '.workshop // empty' "$tmp_body")
+    duration=$(jq -r '.duration_seconds // "?"' "$tmp_body")
+
+    if [ -n "$SINCE_EPOCH" ]; then
+        completed_epoch=$(to_epoch "$completed_at")
+        if [ -z "$completed_epoch" ] || [ "$completed_epoch" -lt "$SINCE_EPOCH" ]; then
+            emit_yellow "$slug" "stale marker from ${completed_at:-unknown} — predates session start"
+            return 0
+        fi
+    fi
+
+    detail="${duration}s, mode=${mode}"
+    [ -n "$cohort" ] && detail="${detail}, workshop=${cohort}"
+    [ -n "$annotation" ] && detail="${detail}, ${annotation}"
+    emit_green "$slug" "$detail"
+}
+
 while IFS= read -r raw_line || [ -n "$raw_line" ]; do
     # strip CR (spreadsheet exports) and surrounding whitespace
     line="${raw_line%$'\r'}"
@@ -154,28 +195,19 @@ while IFS= read -r raw_line || [ -n "$raw_line" ]; do
 
     case "$code" in
         200)
-            if ! jq -e . "$tmp_body" >/dev/null 2>&1; then
-                emit_yellow "$slug" "marker unreadable — invalid JSON"
-                continue
-            fi
-            completed_at=$(jq -r '.completed_at // empty' "$tmp_body")
-            mode=$(jq -r '.mode // "?"' "$tmp_body")
-            cohort=$(jq -r '.workshop // empty' "$tmp_body")
-            duration=$(jq -r '.duration_seconds // "?"' "$tmp_body")
-
-            if [ -n "$SINCE_EPOCH" ]; then
-                completed_epoch=$(to_epoch "$completed_at")
-                if [ -z "$completed_epoch" ] || [ "$completed_epoch" -lt "$SINCE_EPOCH" ]; then
-                    emit_yellow "$slug" "stale marker from ${completed_at:-unknown} — predates session start"
-                    continue
-                fi
-            fi
-
-            detail="${duration}s, mode=${mode}"
-            [ -n "$cohort" ] && detail="${detail}, workshop=${cohort}"
-            emit_green "$slug" "$detail"
+            classify_marker_body "$slug"
             ;;
         404)
+            # Marker absent on the default branch — the marker commit may
+            # have landed on the fallback branch instead (branch protection
+            # rejects direct pushes to main; see the header). Try it BEFORE
+            # the repo-existence check.
+            fb_code=$(curl -s -o "$tmp_body" -w '%{http_code}' \
+                "https://raw.githubusercontent.com/${slug}/${FALLBACK_BRANCH}/.gembaflow-bootstrap-complete") || fb_code="000"
+            if [ "$fb_code" = "200" ]; then
+                classify_marker_body "$slug" "marker on fallback branch"
+                continue
+            fi
             # ${arr[@]+...} keeps bash 3.2 (macOS /bin/bash) happy under
             # set -u when the auth array is empty.
             repo_code=$(curl -s -o /dev/null -w '%{http_code}' ${api_auth[@]+"${api_auth[@]}"} \

@@ -190,14 +190,19 @@ bash scripts/lib/bootstrap-marker.sh
 This writes `.gembaflow-bootstrap-complete` (versioned JSON, `schema_version`
 "1": `completed_at`, `version`, `mode`, optional `workshop` cohort,
 `duration_seconds`), commits it as its own commit
-(`chore(bootstrap): mark complete`), and best-effort pushes so workshop
-instructors can observe fleet bootstrap state via
-`scripts/workshop-fleet-check.sh` (raw.githubusercontent.com fetch — the
-marker must reach the fork's default branch on GitHub to show GREEN).
+(`chore(bootstrap): mark complete`), and pushes it so workshop instructors
+can observe fleet bootstrap state via `scripts/workshop-fleet-check.sh`
+(raw.githubusercontent.com fetch).
 
-Non-fatal: if the push is rejected (e.g. branch protection), relay the
-script's warning — the marker is committed locally and needs to reach the
-default branch — and continue to Step 6.
+Push semantics: the default-branch push is EXPECTED to be rejected once the
+Phase-4 ruleset exists (it blocks direct pushes to `main` for all actors —
+rulesets have no admin exemption), so the script then pushes the marker
+commit to the well-known fallback branch `gembaflow/bootstrap-marker`, which
+the ruleset does not cover. The fleet-check reads that branch automatically
+and reports GREEN with a "marker on fallback branch" annotation — either
+push outcome is a success; relay the script's message as-is. Only if BOTH
+pushes fail (network/auth) does the fork stay YELLOW; relay the script's
+re-run guidance. Never fatal — continue to Step 6 in every case.
 
 ### Step 6 — Closing summary
 
@@ -207,7 +212,7 @@ Print a single closing block:
 ✓ Bootstrap complete.
 
   Mode: <solo|multi-bot>[, workshop (<cohort>)]
-  Marker: .gembaflow-bootstrap-complete <committed and pushed|committed — push pending>
+  Marker: .gembaflow-bootstrap-complete <pushed to main|pushed to fallback branch gembaflow/bootstrap-marker|committed — push pending>
   Tracker: beads (bd), prefix <prefix from bd config / init-beads>
   Ready (top 3 from bd ready --json --limit 0):
     1. <bead-id> — <title>

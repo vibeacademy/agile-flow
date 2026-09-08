@@ -154,9 +154,10 @@ describe("classification", () => {
     expect(stdout).toContain("GREEN owner/notime (?s, mode=solo)");
   });
 
-  it("YELLOW when the fork exists but the marker is missing", () => {
+  it("YELLOW when the fork exists but the marker is missing on both branches", () => {
     const stub = makeCurlStub([
       { match: "raw.githubusercontent.com/owner/wip/main/", code: 404 },
+      { match: "raw.githubusercontent.com/owner/wip/gembaflow/bootstrap-marker/", code: 404 },
       { match: "api.github.com/repos/owner/wip", code: 200, body: "{}" },
     ]);
     const { stdout } = runCheck(stub, { stdin: "owner/wip\n" });
@@ -164,14 +165,56 @@ describe("classification", () => {
     expect(stdout).toContain("Summary: 0 green / 1 yellow / 0 red (1 forks)");
   });
 
-  it("RED when the fork itself does not exist (marker 404 + repo 404)", () => {
+  it("RED when the fork itself does not exist (marker 404 on both branches + repo 404)", () => {
     const stub = makeCurlStub([
       { match: "raw.githubusercontent.com/owner/ghost/main/", code: 404 },
+      { match: "raw.githubusercontent.com/owner/ghost/gembaflow/bootstrap-marker/", code: 404 },
       { match: "api.github.com/repos/owner/ghost", code: 404, body: "{}" },
     ]);
     const { stdout } = runCheck(stub, { stdin: "owner/ghost\n" });
     expect(stdout).toContain("RED owner/ghost (fork not found)");
     expect(stdout).toContain("Summary: 0 green / 0 yellow / 1 red (1 forks)");
+  });
+
+  it("GREEN with annotation when the marker lives on the fallback branch (main push blocked by ruleset)", () => {
+    const stub = makeCurlStub([
+      { match: "raw.githubusercontent.com/owner/protected/main/", code: 404 },
+      {
+        match: "raw.githubusercontent.com/owner/protected/gembaflow/bootstrap-marker/",
+        code: 200,
+        body: marker(),
+      },
+    ]);
+    const { status, stdout } = runCheck(stub, { stdin: "owner/protected\n" });
+    expect(status).toBe(0);
+    expect(stdout).toContain("GREEN owner/protected (123s, mode=solo, marker on fallback branch)");
+    expect(stdout).toContain("Summary: 1 green / 0 yellow / 0 red (1 forks)");
+  });
+
+  it("fallback-branch marker still honors --since staleness (YELLOW stale, not GREEN)", () => {
+    const stub = makeCurlStub([
+      { match: "raw.githubusercontent.com/owner/oldfb/main/", code: 404 },
+      {
+        match: "raw.githubusercontent.com/owner/oldfb/gembaflow/bootstrap-marker/",
+        code: 200,
+        body: marker({ completed_at: isoSecondsAgo(7200) }),
+      },
+    ]);
+    const { stdout } = runCheck(stub, {
+      stdin: "owner/oldfb\n",
+      args: ["--since", isoSecondsAgo(3600)],
+    });
+    expect(stdout).toContain("YELLOW owner/oldfb (stale marker from");
+    expect(stdout).not.toContain("GREEN owner/oldfb");
+  });
+
+  it("default-branch marker wins — no fallback annotation when main has the marker", () => {
+    const stub = makeCurlStub([
+      { match: "raw.githubusercontent.com/owner/done/main/", code: 200, body: marker() },
+    ]);
+    const { stdout } = runCheck(stub, { stdin: "owner/done\n" });
+    expect(stdout).toContain("GREEN owner/done (123s, mode=solo)");
+    expect(stdout).not.toContain("marker on fallback branch");
   });
 
   it("YELLOW (stale) when the marker predates --since; GREEN without --since", () => {

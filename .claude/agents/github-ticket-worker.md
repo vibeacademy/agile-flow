@@ -276,12 +276,17 @@ known pitfalls and working code samples:
 The 5 most dangerous silent failures are listed below. All return success
 signals while doing the wrong thing.
 
-1. **Supabase JWT ref routing.** Supabase routes requests by the `ref` claim
-   in the API key JWT, NOT by the URL. Changing `SUPABASE_URL` to a branch URL
-   while keeping production keys silently routes to production. You must update
-   ALL THREE variables (`SUPABASE_URL`, `SUPABASE_KEY`, `SUPABASE_SERVICE_KEY`)
-   with branch-specific values. The `service_role_key` must be fetched from the
-   Supabase Management API — the standard GitHub Action only returns `anon_key`.
+1. **Supabase keys and URL must match.** Supabase routes requests by the
+   hostname in `SUPABASE_URL` (`<project-ref>.supabase.co`); the key
+   authenticates AFTER routing, and a key from a different project (branch vs
+   production) is rejected with an auth error. The silent failure is the
+   partial update: any variable you FORGOT to update still points at
+   production — the URL decides the destination. You must update ALL THREE
+   variables (`SUPABASE_URL`, `SUPABASE_KEY`, `SUPABASE_SERVICE_KEY`) with
+   branch-specific values as a matched set. All three are available as outputs
+   of `0xbigboss/supabase-branch-gh-action` (including `service_role_key`);
+   the Supabase Management API is a fallback only. See `docs/PATTERN-LIBRARY.md`
+   patterns 2-3.
 
 2. **Render env var updates require redeploy.** The Render API returns 200 when
    you update an environment variable, and the dashboard shows the new value,

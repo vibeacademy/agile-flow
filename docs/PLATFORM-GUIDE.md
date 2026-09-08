@@ -248,13 +248,17 @@ Your application should read these environment variables for Supabase:
 | `SUPABASE_KEY` | Supabase anon key (public, safe for client-side) |
 | `SUPABASE_SERVICE_KEY` | Supabase service_role key (server-side only) |
 
-### Important: JWT Ref Routing
+### Important: Keys and URL Must Match
 
-Supabase routes requests based on the JWT `ref` claim, not the URL. The
-GitHub Action (`0xbigboss/supabase-branch-gh-action`) only returns the
-`anon_key`. The `preview-deploy.yml` workflow fetches both `anon_key` and
-`service_role_key` from the Supabase Management API to ensure correct
-routing to the branch database.
+Supabase routes requests by the hostname in `SUPABASE_URL`
+(`<project-ref>.supabase.co`); the API key authenticates the request after
+it arrives, and a key from a different project (branch vs production) is
+rejected with an auth error. All three variables — URL, anon key, service
+key — must therefore come from the same branch as a matched set. The GitHub
+Action (`0xbigboss/supabase-branch-gh-action`) exposes `anon_key` and
+`service_role_key` as outputs; `preview-deploy.yml` also falls back to the
+Supabase Management API when needed. See `docs/PATTERN-LIBRARY.md`
+patterns 2–3.
 
 ## Error Monitoring
 

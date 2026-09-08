@@ -79,16 +79,26 @@ When copying workflows between projects, audit all URL paths for framework diffe
 
 ## 2. Supabase: JWT Ref Routing
 
-**Gotcha:** Supabase API keys are JWTs containing a `ref` claim that determines
-which project receives the request — **regardless of the URL you set**. Changing
-`SUPABASE_URL` to a branch URL while keeping production keys routes requests to
-production silently.
+**Gotcha:** Supabase legacy API keys are JWTs containing a `ref` claim naming
+the project they were issued for. Every Supabase branch is a separate project
+with its own ref, so keys and URLs come in matched sets — and mixing a branch
+URL with production keys (or updating the keys but missing one of the URL
+variables) breaks previews in confusing ways.
 
 ```
 SUPABASE_URL=https://branch-xyz.supabase.co     # Branch URL
-SUPABASE_KEY=eyJh...ref:"prod-project-ref"...   # Production ref in JWT!
-# Result: requests go to PRODUCTION despite branch URL
+SUPABASE_KEY=eyJh...ref:"prod-project-ref"...   # Production key!
+# Result: branch rejects the mismatched key with an auth/API-key error —
+# and any variable you FORGOT to update still points at production
 ```
+
+To be precise about the mechanism: requests are **routed by the hostname** in
+`SUPABASE_URL` (`<project-ref>.supabase.co`). The key is used for
+authentication and authorization *after* the request reaches that project —
+the `ref` claim inside the JWT never redirects a request to a different
+project. The danger of a partial update is therefore twofold: variables you
+missed keep sending traffic to production (URL decides the destination), and
+variables you mixed produce auth errors on the branch.
 
 **Pattern:** You must update **all three** environment variables for preview:
 
@@ -99,18 +109,22 @@ SUPABASE_KEY="${BRANCH_ANON_KEY}"          # Branch-specific anon key
 SUPABASE_SERVICE_KEY="${BRANCH_SERVICE_KEY}" # Branch-specific service_role key
 ```
 
-**Why this matters:** The `0xbigboss/supabase-branch-gh-action` only returns
-`anon_key`. The `service_role_key` must be fetched separately (see Pattern 3).
+**Why this matters:** All three branch values are available as outputs of the
+`0xbigboss/supabase-branch-gh-action` step (see Pattern 3) — there is no
+excuse for a partial update.
 
 ---
 
 ## 3. Supabase: Fetching Branch Database Credentials
 
-**Gotcha:** The standard Supabase branch GitHub Action only provides the branch
-URL and `anon_key`. Server-side operations (admin API, service role access)
-require the `service_role_key`, which must be fetched from the Management API.
+**Gotcha:** It's easy to assume the branch GitHub Action only provides the
+branch URL and `anon_key` and then hand-roll a Management API `curl` to fetch
+the `service_role_key`. Unnecessary: `0xbigboss/supabase-branch-gh-action`
+exposes `service_role_key` as a standard output (alongside `project_ref`,
+`anon_key`, `api_url`, `jwt_secret`, and the `db_*` connection details —
+verified in the action's `action.yml` at the `v1` tag).
 
-**Pattern:**
+**Pattern:** Read everything from the action's outputs:
 
 ```yaml
 # preview-deploy.yml
@@ -119,21 +133,20 @@ require the `service_role_key`, which must be fetched from the Management API.
   uses: 0xbigboss/supabase-branch-gh-action@v1
   with:
     supabase-access-token: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-    supabase-project-ref: ${{ secrets.SUPABASE_PROJECT_REF }}
+    supabase-project-id: ${{ secrets.SUPABASE_PROJECT_REF }}
     wait-for-migrations: true
 
-- name: Fetch service_role key from Management API
-  id: service-key
+- name: Set branch environment variables
   run: |
-    BRANCH_REF="${{ steps.supabase-branch.outputs.branch_project_ref }}"
-
-    SERVICE_ROLE_KEY=$(curl -s \
-      "https://api.supabase.com/v1/projects/${BRANCH_REF}/api-keys" \
-      -H "Authorization: Bearer ${{ secrets.SUPABASE_ACCESS_TOKEN }}" \
-      | jq -r '.[] | select(.name == "service_role") | .api_key')
-
-    echo "service_role_key=${SERVICE_ROLE_KEY}" >> "$GITHUB_OUTPUT"
+    BRANCH_REF="${{ steps.supabase-branch.outputs.project_ref }}"
+    echo "SUPABASE_URL=https://${BRANCH_REF}.supabase.co" >> "$GITHUB_ENV"
+    echo "SUPABASE_ANON_KEY=${{ steps.supabase-branch.outputs.anon_key }}" >> "$GITHUB_ENV"
+    echo "SUPABASE_SERVICE_KEY=${{ steps.supabase-branch.outputs.service_role_key }}" >> "$GITHUB_ENV"
 ```
+
+The Management API (`GET /v1/projects/{ref}/api-keys`) remains a valid
+fallback if the action's outputs come back empty (e.g. the branch is still
+provisioning), but it is not required in the happy path.
 
 **Also note:** The `supabase branches get` CLI command returns the **parent
 project's URL**, not the branch URL. Always use the Management API for
@@ -467,27 +480,63 @@ jobs:
 
 **Gotcha:** Workflows that require optional secrets (Supabase, Render) fail
 noisily when those secrets aren't configured, causing red CI for participants
-who haven't completed setup yet.
+who haven't completed setup yet. The tempting fix —
+`if: ${{ secrets.MY_SECRET != '' }}` — **does not work**: GitHub does not make
+the `secrets` context available to `if:` conditionals ("Secrets cannot be
+directly referenced in `if:` conditionals" — official docs, confirmed by
+GitHub staff in community discussion 26726), so the gate misbehaves even when
+the secret is configured.
 
-**Pattern:** Gate optional steps on secret existence:
+**Pattern:** Use the two supported mechanisms instead.
+
+For **steps**, map the secret into `env` (where the `secrets` context IS
+available) and gate on the `env` context:
 
 ```yaml
 jobs:
-  deploy-preview:
-    # Skip entire job if Render isn't configured
-    if: ${{ secrets.RENDER_API_KEY != '' }}
-    steps: ...
-
   setup-supabase:
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
     steps:
       - name: Create Supabase branch
         # Skip step if Supabase isn't configured
-        if: ${{ secrets.SUPABASE_ACCESS_TOKEN != '' }}
+        if: env.SUPABASE_ACCESS_TOKEN != ''
         run: ...
 ```
 
+For **jobs** (where neither `secrets` nor `env` is available in `if:`), run a
+cheap probe job that reads the secrets into step env and republishes their
+*presence* as outputs — never the values — then gate downstream jobs on the
+outputs. This is exactly what this repo's `preview-deploy.yml` `config` job
+does:
+
+```yaml
+jobs:
+  config:
+    runs-on: ubuntu-latest
+    outputs:
+      render_configured: ${{ steps.probe.outputs.render_configured }}
+    steps:
+      - id: probe
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+        run: |
+          if [ -n "$RENDER_API_KEY" ]; then
+            echo "render_configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "render_configured=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  deploy-preview:
+    needs: config
+    # Skip entire job if Render isn't configured
+    if: needs.config.outputs.render_configured == 'true'
+    steps: ...
+```
+
 This lets the template work for participants at different stages of setup
-without false CI failures.
+without false CI failures — unconfigured forks see the job as SKIPPED
+(neutral), which still satisfies required status checks.
 
 ---
 
@@ -576,7 +625,10 @@ bd ready --json --limit 0
 with **no truncation warning**. Boards with more items appear complete but
 aren't.
 
-**Pattern:** Always use the GraphQL API for project board queries:
+**Pattern:** The direct fix is the CLI's built-in flag — `gh project
+item-list --limit 200` (`-L`, default 30). GraphQL is **not** the only
+solution; reach for it only when you need cursor pagination past a single
+request or fields the CLI doesn't surface:
 
 ```bash
 gh api graphql --paginate -f query='
